@@ -13,7 +13,7 @@ function Router() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto p-0">
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/contacts" component={Contacts} />
