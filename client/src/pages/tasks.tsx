@@ -85,20 +85,19 @@ export default function Tasks() {
 
   return (
     <div>
-      <Header title="Tasks" />
+      <Header 
+        title="Tasks" 
+        action={{
+          label: "Add Task",
+          onClick: () => setIsFormOpen(true)
+        }}
+      />
 
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold">Task List</h2>
-            <p className="text-sm text-muted-foreground">
-              Manage your tasks and track progress
-            </p>
-          </div>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
+        <div className="mb-6">
+          <p className="text-sm text-muted-foreground">
+            Manage your tasks and track progress
+          </p>
         </div>
 
         {isLoading ? (

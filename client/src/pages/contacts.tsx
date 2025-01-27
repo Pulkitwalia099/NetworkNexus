@@ -4,8 +4,7 @@ import Header from "@/components/layout/header";
 import ContactCard from "@/components/contacts/contact-card";
 import ContactForm from "@/components/contacts/contact-form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import { Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
 
@@ -79,11 +78,17 @@ export default function Contacts() {
 
   return (
     <div>
-      <Header title="Contacts" />
-      
+      <Header 
+        title="Contacts" 
+        action={{
+          label: "Add Contact",
+          onClick: handleAddNew
+        }}
+      />
+
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative w-64">
+        <div className="w-64 mb-6">
+          <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search contacts..."
@@ -92,10 +97,6 @@ export default function Contacts() {
               className="pl-8"
             />
           </div>
-          <Button onClick={handleAddNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Contact
-          </Button>
         </div>
 
         {isLoading ? (

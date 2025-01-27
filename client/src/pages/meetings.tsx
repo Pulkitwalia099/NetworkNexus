@@ -68,17 +68,15 @@ export default function Meetings() {
 
   return (
     <div>
-      <Header title="Meetings" />
+      <Header 
+        title="Meetings" 
+        action={{
+          label: "Schedule Meeting",
+          onClick: () => setIsFormOpen(true)
+        }}
+      />
 
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold">Upcoming Meetings</h2>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule Meeting
-          </Button>
-        </div>
-
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (

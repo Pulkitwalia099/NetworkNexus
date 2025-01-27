@@ -1,8 +1,16 @@
-import { MoonIcon, SunIcon } from "lucide-react";
+import { MoonIcon, SunIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use-theme";
 
-export default function Header({ title }: { title: string }) {
+interface HeaderProps {
+  title: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
+export default function Header({ title, action }: HeaderProps) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -12,17 +20,25 @@ export default function Header({ title }: { title: string }) {
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
             {title}
           </h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-          >
-            {theme === 'light' ? (
-              <MoonIcon className="h-5 w-5" />
-            ) : (
-              <SunIcon className="h-5 w-5" />
+          <div className="flex items-center space-x-2">
+            {action && (
+              <Button onClick={action.onClick}>
+                <Plus className="h-4 w-4 mr-2" />
+                {action.label}
+              </Button>
             )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            >
+              {theme === 'light' ? (
+                <MoonIcon className="h-5 w-5" />
+              ) : (
+                <SunIcon className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </header>
