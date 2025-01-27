@@ -14,13 +14,10 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/contacts", async (req, res) => {
     try {
       const searchTerm = req.query.search as string;
-      let query = db.select().from(contacts);
-
-      if (searchTerm) {
-        query = query.where(like(contacts.name, `%${searchTerm}%`));
-      }
-
-      const results = await query.orderBy(desc(contacts.updatedAt));
+      const results = await db.query.contacts.findMany({
+        orderBy: desc(contacts.updatedAt),
+        where: searchTerm ? like(contacts.name, `%${searchTerm}%`) : undefined,
+      });
       res.json(results);
     } catch (error) {
       console.error("Error fetching contacts:", error);
@@ -30,7 +27,13 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/contacts", async (req, res) => {
     try {
-      const contact = await db.insert(contacts).values(req.body).returning();
+      const contact = await db.insert(contacts)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
       res.json(contact[0]);
     } catch (error) {
       console.error("Error creating contact:", error);
@@ -40,9 +43,11 @@ export function registerRoutes(app: Express): Server {
 
   app.put("/api/contacts/:id", async (req, res) => {
     try {
-      const contact = await db
-        .update(contacts)
-        .set(req.body)
+      const contact = await db.update(contacts)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
         .where(eq(contacts.id, parseInt(req.params.id)))
         .returning();
       res.json(contact[0]);
@@ -55,7 +60,9 @@ export function registerRoutes(app: Express): Server {
   // Meetings API
   app.get("/api/meetings", async (_req, res) => {
     try {
-      const results = await db.select().from(meetings).orderBy(desc(meetings.date));
+      const results = await db.query.meetings.findMany({
+        orderBy: desc(meetings.date),
+      });
       res.json(results);
     } catch (error) {
       console.error("Error fetching meetings:", error);
@@ -65,7 +72,13 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/meetings", async (req, res) => {
     try {
-      const meeting = await db.insert(meetings).values(req.body).returning();
+      const meeting = await db.insert(meetings)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
       res.json(meeting[0]);
     } catch (error) {
       console.error("Error creating meeting:", error);
@@ -76,7 +89,9 @@ export function registerRoutes(app: Express): Server {
   // Tasks API 
   app.get("/api/tasks", async (_req, res) => {
     try {
-      const results = await db.select().from(tasks).orderBy(desc(tasks.dueDate));
+      const results = await db.query.tasks.findMany({
+        orderBy: desc(tasks.dueDate),
+      });
       res.json(results);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -86,7 +101,13 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/tasks", async (req, res) => {
     try {
-      const task = await db.insert(tasks).values(req.body).returning();
+      const task = await db.insert(tasks)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
       res.json(task[0]);
     } catch (error) {
       console.error("Error creating task:", error);
@@ -96,9 +117,11 @@ export function registerRoutes(app: Express): Server {
 
   app.put("/api/tasks/:id", async (req, res) => {
     try {
-      const task = await db
-        .update(tasks)
-        .set(req.body)
+      const task = await db.update(tasks)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
         .where(eq(tasks.id, parseInt(req.params.id)))
         .returning();
       res.json(task[0]);
