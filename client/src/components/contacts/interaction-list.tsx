@@ -15,37 +15,54 @@ interface InteractionListProps {
 
 export default function InteractionList({ interactions }: InteractionListProps) {
   return (
-    <div className="space-y-4">
-      {interactions.map((interaction) => {
+    <div className="relative space-y-0">
+      {interactions.map((interaction, index) => {
         const Icon = icons[interaction.type as keyof typeof icons] || MessageSquare;
-        
+
         return (
-          <div
-            key={interaction.id}
-            className="flex items-start space-x-4 p-4 rounded-lg border bg-card"
-          >
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Icon className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start">
-                <p className="text-sm font-medium">
-                  {interaction.title}
-                </p>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(interaction.date), "PPp")}
-                </span>
+          <div key={interaction.id} className="relative pl-8 pb-8">
+            {/* Timeline connector */}
+            {index < interactions.length - 1 && (
+              <div className="absolute left-[1.1875rem] top-10 bottom-0 w-px bg-border" />
+            )}
+
+            <div className="relative">
+              {/* Timeline node */}
+              <div className="absolute left-[-2rem] p-1 rounded-full bg-background border-2 border-primary">
+                <Icon className="h-4 w-4 text-primary" />
               </div>
-              {interaction.description && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {interaction.description}
-                </p>
-              )}
-              {interaction.outcome && (
-                <p className="mt-2 text-sm font-medium text-primary">
-                  Outcome: {interaction.outcome}
-                </p>
-              )}
+
+              {/* Content */}
+              <div className="bg-card rounded-lg border p-4">
+                <div className="flex justify-between items-start gap-x-2">
+                  <div>
+                    <p className="font-medium">
+                      {interaction.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {format(new Date(interaction.date), "PPp")}
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary capitalize">
+                    {interaction.type}
+                  </span>
+                </div>
+
+                {interaction.description && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {interaction.description}
+                  </p>
+                )}
+
+                {interaction.outcome && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-sm">
+                      <span className="font-medium text-primary">Outcome:</span>{" "}
+                      {interaction.outcome}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         );

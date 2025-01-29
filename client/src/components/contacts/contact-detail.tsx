@@ -24,6 +24,11 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     enabled: open,
   });
 
+  // Sort interactions by date in descending order
+  const sortedInteractions = interactions?.sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   const createInteractionMutation = useMutation({
     mutationFn: async (data: Partial<Interaction>) => {
       const response = await fetch(`/api/contacts/${contact.id}/interactions`, {
@@ -50,6 +55,7 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <div className="grid gap-6">
+          {/* Contact Info Section */}
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-semibold">{contact.name}</h2>
@@ -107,10 +113,11 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
             </Button>
           </div>
 
+          {/* Timeline Section */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Interaction History</h3>
-            {interactions?.length ? (
-              <InteractionList interactions={interactions} />
+            <h3 className="text-lg font-semibold mb-4">Interaction Timeline</h3>
+            {sortedInteractions?.length ? (
+              <InteractionList interactions={sortedInteractions} />
             ) : (
               <p className="text-sm text-muted-foreground">
                 No interactions recorded yet.
