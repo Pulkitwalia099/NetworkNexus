@@ -13,7 +13,12 @@ export const queryClient = new QueryClient({
             throw new Error(`${res.status}: ${res.statusText}`);
           }
 
-          throw new Error(`${res.status}: ${await res.text()}`);
+          try {
+            const errorData = await res.json();
+            throw new Error(errorData.message || `${res.status}: ${await res.text()}`);
+          } catch {
+            throw new Error(`${res.status}: ${await res.text()}`);
+          }
         }
 
         return res.json();
@@ -21,10 +26,22 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: false,
+      retry: (failureCount, error) => {
+        // Only retry server errors, not client errors
+        if (error instanceof Error && error.message.startsWith('5')) {
+          return failureCount < 3;
+        }
+        return false;
+      },
+      onError: (error) => {
+        console.error('Query error:', error);
+      }
     },
     mutations: {
       retry: false,
+      onError: (error) => {
+        console.error('Mutation error:', error);
+      }
     }
   },
 });

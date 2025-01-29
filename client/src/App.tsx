@@ -10,21 +10,24 @@ import Tasks from "@/pages/tasks";
 import NetworkView from "@/pages/network";
 import Calendar from "@/pages/calendar";
 import Sidebar from "@/components/layout/sidebar";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 function Router() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
       <main className="pl-64">
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/contacts" component={Contacts} />
-          <Route path="/meetings" component={Meetings} />
-          <Route path="/tasks" component={Tasks} />
-          <Route path="/network" component={NetworkView} />
-          <Route path="/calendar" component={Calendar} />
-          <Route component={NotFound} />
-        </Switch>
+        <ErrorBoundary>
+          <Switch>
+            <Route path="/" component={Dashboard} />
+            <Route path="/contacts" component={Contacts} />
+            <Route path="/meetings" component={Meetings} />
+            <Route path="/tasks" component={Tasks} />
+            <Route path="/network" component={NetworkView} />
+            <Route path="/calendar" component={Calendar} />
+            <Route component={NotFound} />
+          </Switch>
+        </ErrorBoundary>
       </main>
     </div>
   );
@@ -32,10 +35,12 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router />
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
