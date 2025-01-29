@@ -6,6 +6,7 @@ import { eq, like, desc, and, or } from "drizzle-orm";
 import { createObjectCsvStringifier } from "csv-writer";
 import { parse } from "csv-parse/sync";
 import { sql } from 'drizzle-orm/sql';
+import { fuzzySearchContacts } from "./utils/search";
 
 export function registerRoutes(app: Express): Server {
   // Check server health
@@ -19,8 +20,14 @@ export function registerRoutes(app: Express): Server {
       const searchTerm = req.query.search as string;
       const results = await db.query.contacts.findMany({
         orderBy: desc(contacts.updatedAt),
-        where: searchTerm ? like(contacts.name, `%${searchTerm}%`) : undefined,
       });
+
+      if (searchTerm) {
+        // Apply fuzzy search if search term is provided
+        const fuzzyResults = fuzzySearchContacts(results, searchTerm);
+        return res.json(fuzzyResults);
+      }
+
       res.json(results);
     } catch (error) {
       console.error("Error fetching contacts:", error);
