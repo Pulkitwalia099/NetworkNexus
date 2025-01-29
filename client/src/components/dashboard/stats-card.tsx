@@ -1,19 +1,17 @@
 import { Card } from "@/components/ui/card";
 import { Users, Calendar, CheckSquare, CheckCircle } from "lucide-react";
 
-type IconType = keyof typeof icons;
-
 const icons = {
   users: Users,
   calendar: Calendar,
   "check-square": CheckSquare,
   "check-circle": CheckCircle,
-} as const;
+};
 
 interface StatsCardProps {
   title: string;
   value: number;
-  icon: IconType;
+  icon: keyof typeof icons;
 }
 
 export default function StatsCard({ title, value, icon }: StatsCardProps) {
