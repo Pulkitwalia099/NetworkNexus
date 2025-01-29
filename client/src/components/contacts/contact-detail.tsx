@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageSquare, Mail, Phone, Building2, Briefcase, Users, Tag } from "lucide-react";
 import InteractionList from "./interaction-list";
 import InteractionForm from "./interaction-form";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ContactDetailProps {
   contact: Contact;
@@ -24,7 +25,6 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     enabled: open,
   });
 
-  // Sort interactions by date in descending order
   const sortedInteractions = interactions?.sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -51,80 +51,118 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     createInteractionMutation.mutate(data);
   };
 
+  const ContactInfoItem = ({ icon: Icon, children }: { icon: any; children: React.ReactNode }) => (
+    <motion.div 
+      className="flex items-center text-sm text-muted-foreground space-x-2"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{children}</span>
+    </motion.div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
-        <div className="grid gap-6">
+        <motion.div 
+          className="grid gap-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           {/* Contact Info Section */}
           <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold">{contact.name}</h2>
-              <div className="mt-2 space-y-1">
-                {contact.email && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Mail className="mr-2 h-4 w-4" />
-                    {contact.email}
-                  </div>
-                )}
-                {contact.phone && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Phone className="mr-2 h-4 w-4" />
-                    {contact.phone}
-                  </div>
-                )}
-                {contact.company && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    {contact.company}
-                  </div>
-                )}
-                {contact.title && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Briefcase className="mr-2 h-4 w-4" />
-                    {contact.title}
-                  </div>
-                )}
-                {contact.group && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="mr-2 h-4 w-4" />
-                    {contact.group}
-                  </div>
-                )}
+            <div className="space-y-4">
+              <motion.h2 
+                className="text-2xl font-semibold"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                {contact.name}
+              </motion.h2>
+              <div className="space-y-2">
+                <AnimatePresence>
+                  {contact.email && (
+                    <ContactInfoItem icon={Mail}>{contact.email}</ContactInfoItem>
+                  )}
+                  {contact.phone && (
+                    <ContactInfoItem icon={Phone}>{contact.phone}</ContactInfoItem>
+                  )}
+                  {contact.company && (
+                    <ContactInfoItem icon={Building2}>{contact.company}</ContactInfoItem>
+                  )}
+                  {contact.title && (
+                    <ContactInfoItem icon={Briefcase}>{contact.title}</ContactInfoItem>
+                  )}
+                  {contact.group && (
+                    <ContactInfoItem icon={Users}>{contact.group}</ContactInfoItem>
+                  )}
+                </AnimatePresence>
                 {contact.tags && contact.tags.length > 0 && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Tag className="mr-2 h-4 w-4" />
+                  <motion.div 
+                    className="flex items-center text-sm text-muted-foreground space-x-2"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Tag className="h-4 w-4" />
                     <div className="flex flex-wrap gap-1">
-                      {(contact.tags as string[]).map((tag) => (
-                        <span
+                      {(contact.tags as string[]).map((tag, index) => (
+                        <motion.span
                           key={tag}
                           className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: index * 0.1 }}
                         >
                           {tag}
-                        </span>
+                        </motion.span>
                       ))}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
             </div>
-            <Button onClick={() => setIsInteractionFormOpen(true)}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Add Interaction
-            </Button>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Button 
+                onClick={() => setIsInteractionFormOpen(true)}
+                className="bg-primary/10 text-primary hover:bg-primary/20"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Add Interaction
+              </Button>
+            </motion.div>
           </div>
 
           {/* Timeline Section */}
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
             <h3 className="text-lg font-semibold mb-4">Interaction Timeline</h3>
-            {sortedInteractions?.length ? (
-              <InteractionList interactions={sortedInteractions} />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No interactions recorded yet.
-              </p>
-            )}
-          </div>
-        </div>
+            <AnimatePresence>
+              {sortedInteractions?.length ? (
+                <InteractionList interactions={sortedInteractions} />
+              ) : (
+                <motion.p 
+                  className="text-sm text-muted-foreground"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  No interactions recorded yet.
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
 
         <InteractionForm
           open={isInteractionFormOpen}

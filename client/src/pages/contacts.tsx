@@ -17,6 +17,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Contacts() {
   const [search, setSearch] = useState("");
@@ -214,7 +215,7 @@ export default function Contacts() {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       <Header 
         title="Contacts" 
         action={{
@@ -222,12 +223,18 @@ export default function Contacts() {
           onClick: handleAddNew
         }}
         extraButtons={
-          <div className="flex items-center space-x-2">
+          <motion.div 
+            className="flex items-center space-x-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <Button
               variant="outline"
               size="icon"
               onClick={() => setIsGroupManagementOpen(true)}
               title="Manage Groups"
+              className="hover:bg-primary/10"
             >
               <Users2 className="h-4 w-4" />
             </Button>
@@ -236,7 +243,7 @@ export default function Contacts() {
                 <Button
                   variant="outline"
                   size="icon"
-                  className="relative"
+                  className="relative hover:bg-primary/10"
                   title="Filter by tags"
                 >
                   <Tags className="h-4 w-4" />
@@ -274,6 +281,7 @@ export default function Contacts() {
               size="icon"
               onClick={() => handleExport('json')}
               title="Export as JSON"
+              className="hover:bg-primary/10"
             >
               <FileJson className="h-4 w-4" />
             </Button>
@@ -282,6 +290,7 @@ export default function Contacts() {
               size="icon"
               onClick={() => handleExport('csv')}
               title="Export as CSV"
+              className="hover:bg-primary/10"
             >
               <FileSpreadsheet className="h-4 w-4" />
             </Button>
@@ -290,77 +299,117 @@ export default function Contacts() {
               size="icon"
               onClick={() => setIsImportOpen(true)}
               title="Import Contacts"
+              className="hover:bg-primary/10"
             >
               <Upload className="h-4 w-4" />
             </Button>
-          </div>
+          </motion.div>
         }
       />
 
-      <div className="p-6">
-        <div className="w-64 mb-6">
+      <div className="p-6 max-w-7xl mx-auto">
+        <motion.div 
+          className="w-full max-w-md mb-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search contacts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8"
+              className="pl-8 bg-background/50 backdrop-blur-sm border-opacity-50"
             />
           </div>
-        </div>
+        </motion.div>
 
         {isLoading ? (
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <motion.div
                 key={i}
-                className="h-24 bg-muted animate-pulse rounded-lg"
+                className="h-32 bg-muted animate-pulse rounded-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.1 }}
               />
             ))}
           </div>
         ) : (
           <>
-            {selectedTags.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                {selectedTags.map(tag => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
-                  >
-                    {tag}
-                    <button
-                      onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
-                      className="ml-1 hover:text-destructive"
+            <AnimatePresence>
+              {selectedTags.length > 0 && (
+                <motion.div 
+                  className="mb-4 flex flex-wrap gap-2"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  {selectedTags.map(tag => (
+                    <motion.span
+                      key={tag}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
                     >
-                      ×
+                      {tag}
+                      <button
+                        onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        ×
+                      </button>
+                    </motion.span>
+                  ))}
+                  {selectedTags.length > 1 && (
+                    <button
+                      onClick={() => setSelectedTags([])}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Clear all
                     </button>
-                  </span>
-                ))}
-                {selectedTags.length > 1 && (
-                  <button
-                    onClick={() => setSelectedTags([])}
-                    className="text-xs text-muted-foreground hover:text-foreground"
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div 
+              className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <AnimatePresence>
+                {filteredAndGroupedContacts.map((contact, index) => (
+                  <motion.div
+                    key={contact.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
-                    Clear all
-                  </button>
-                )}
-              </div>
-            )}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredAndGroupedContacts.map((contact) => (
-                <ContactCard
-                  key={contact.id}
-                  contact={contact}
-                  onClick={() => handleViewContact(contact)}
-                  onEdit={() => handleEdit(contact)}
-                />
-              ))}
-            </div>
+                    <ContactCard
+                      contact={contact}
+                      onClick={() => handleViewContact(contact)}
+                      onEdit={() => handleEdit(contact)}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+
             {filteredAndGroupedContacts.length === 0 && (
-              <p className="text-center text-muted-foreground mt-8">
+              <motion.p 
+                className="text-center text-muted-foreground mt-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 No contacts found {selectedTags.length > 0 && "with selected tags"}
-              </p>
+              </motion.p>
             )}
           </>
         )}
