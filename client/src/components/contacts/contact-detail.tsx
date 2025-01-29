@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Contact, Interaction, Task } from "@db/schema";
+import { Contact, Interaction } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
   );
 
   const createInteractionMutation = useMutation({
-    mutationFn: async (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
+    mutationFn: async (data: any) => {
       const { createTask, taskTitle, taskDueDate, taskPriority, ...interactionData } = data;
 
       const response = await fetch(`/api/contacts/${contact.id}/interactions`, {
@@ -45,7 +45,6 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
             dueDate: taskDueDate,
             priority: taskPriority,
             category: 'follow-up',
-            contactId: contact.id,
           } : undefined,
         }),
       });
@@ -73,7 +72,7 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     },
   });
 
-  const handleAddInteraction = (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
+  const handleAddInteraction = (data: any) => {
     createInteractionMutation.mutate(data);
   };
 

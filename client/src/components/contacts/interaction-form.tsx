@@ -34,7 +34,7 @@ type InteractionFormData = z.infer<typeof interactionSchema>;
 interface InteractionFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: InteractionFormData & { task?: { title: string; dueDate: string; priority: string; tags: string[] } }) => void;
+  onSubmit: (data: InteractionFormData) => void;
 }
 
 export default function InteractionForm({ open, onClose, onSubmit }: InteractionFormProps) {
@@ -55,17 +55,7 @@ export default function InteractionForm({ open, onClose, onSubmit }: Interaction
   });
 
   const handleSubmit = (data: InteractionFormData) => {
-    const submissionData = {
-      ...data,
-      task: data.createTask ? {
-        title: data.taskTitle,
-        dueDate: data.taskDueDate,
-        priority: data.taskPriority,
-        tags: [],
-      } : undefined,
-    };
-
-    onSubmit(submissionData);
+    onSubmit(data);
     form.reset();
     setShowTaskFields(false);
   };

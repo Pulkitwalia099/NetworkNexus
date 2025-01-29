@@ -280,11 +280,8 @@ export function registerRoutes(app: Express): Server {
           }
 
           // Initialize tags array and add contact tag
-          const existingTags = Array.isArray(task.tags) ? task.tags : [];
           const contactTag = `contact:${contact.name}`;
-          const taskTags = [...existingTags, contactTag];
-
-          console.log('Creating task with tags:', taskTags); // Debug log
+          const taskTags = [contactTag];
 
           // Create task with contact tag
           const [createdTask] = await tx.insert(tasks)
@@ -300,8 +297,6 @@ export function registerRoutes(app: Express): Server {
               updatedAt: new Date(),
             })
             .returning();
-
-          console.log('Created task:', createdTask); // Additional debug log
 
           return { interaction, task: createdTask };
         }
