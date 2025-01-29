@@ -60,6 +60,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete("/api/contacts/:id", async (req, res) => {
+    try {
+      const contact = await db.delete(contacts)
+        .where(eq(contacts.id, parseInt(req.params.id)))
+        .returning();
+      res.json(contact[0]);
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({ error: "Failed to delete contact" });
+    }
+  });
+
   app.get("/api/contacts/export", async (req, res) => {
     try {
       const format = req.query.format as string || 'json';

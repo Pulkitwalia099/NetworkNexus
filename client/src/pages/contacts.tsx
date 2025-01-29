@@ -109,6 +109,29 @@ export default function Contacts() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/contacts/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete contact");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Contact deleted successfully" });
+      setIsFormOpen(false);
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete contact",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleSubmit = (data: Partial<Contact>) => {
     if (selectedContact) {
       updateMutation.mutate({ ...data, id: selectedContact.id });
@@ -130,6 +153,12 @@ export default function Contacts() {
   const handleViewContact = (contact: Contact) => {
     setSelectedContact(contact);
     setIsDetailOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (selectedContact) {
+      deleteMutation.mutate(selectedContact.id);
+    }
   };
 
   const handleExport = async (format: 'json' | 'csv') => {
@@ -363,6 +392,7 @@ export default function Contacts() {
           open={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           onSubmit={handleSubmit}
+          onDelete={selectedContact ? handleDelete : undefined}
         />
 
         {selectedContact && (

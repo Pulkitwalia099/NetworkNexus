@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Contact } from "@db/schema";
 import { z } from "zod";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 const contactSchema = z.object({
@@ -28,21 +28,47 @@ interface ContactFormProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: Partial<Contact>) => void;
+  onDelete?: () => void;
 }
 
-export default function ContactForm({ contact, open, onClose, onSubmit }: ContactFormProps) {
+export default function ContactForm({ contact, open, onClose, onSubmit, onDelete }: ContactFormProps) {
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      name: contact?.name ?? "",
-      email: contact?.email ?? "",
-      phone: contact?.phone ?? "",
-      company: contact?.company ?? "",
-      title: contact?.title ?? "",
-      group: contact?.group ?? "",
-      tags: contact?.tags as string[] ?? [],
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      title: "",
+      group: "",
+      tags: [],
     },
   });
+
+  // Reset form with contact data when editing
+  useEffect(() => {
+    if (contact) {
+      form.reset({
+        name: contact.name,
+        email: contact.email ?? "",
+        phone: contact.phone ?? "",
+        company: contact.company ?? "",
+        title: contact.title ?? "",
+        group: contact.group ?? "",
+        tags: contact.tags as string[] ?? [],
+      });
+    } else {
+      form.reset({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        title: "",
+        group: "",
+        tags: [],
+      });
+    }
+  }, [contact, form]);
 
   const { data: groups } = useQuery<{ id: number; name: string }[]>({
     queryKey: ["/api/groups"],
@@ -213,13 +239,28 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
               )}
             />
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {contact ? "Save Changes" : "Create Contact"}
-              </Button>
+            <div className="flex justify-between">
+              {contact && onDelete && (
+                <Button 
+                  type="button" 
+                  variant="destructive"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to delete this contact?")) {
+                      onDelete();
+                    }
+                  }}
+                >
+                  Delete Contact
+                </Button>
+              )}
+              <div className="flex space-x-2 ml-auto">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {contact ? "Save Changes" : "Create Contact"}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
