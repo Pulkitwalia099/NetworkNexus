@@ -320,8 +320,31 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   // Add this new endpoint just before the existing contact connections endpoints
+  app.post("/api/contacts/groups/delete", async (req, res) => {
+    try {
+      const { group } = req.body;
+
+      // First clear the group reference from all contacts
+      await db.update(contacts)
+        .set({ 
+          group: null,
+          updatedAt: new Date()
+        })
+        .where(eq(contacts.group, group));
+
+      // Then delete the group from the groups table
+      await db.execute(
+        sql`DELETE FROM groups WHERE name = ${group}`
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      res.status(500).json({ error: "Failed to delete group" });
+    }
+  });
+
   app.get("/api/connections", async (_req, res) => {
     try {
       const results = await db.query.contactConnections.findMany({

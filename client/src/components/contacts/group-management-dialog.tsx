@@ -4,18 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface GroupManagementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  existingGroups: string[];
 }
 
 export default function GroupManagementDialog({
   open,
   onOpenChange,
-  existingGroups,
 }: GroupManagementDialogProps) {
   const [newGroup, setNewGroup] = useState("");
   const [editingGroup, setEditingGroup] = useState<{ original: string; current: string } | null>(
@@ -23,6 +21,12 @@ export default function GroupManagementDialog({
   );
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Fetch groups
+  const { data: groups } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ["/api/groups"],
+    enabled: open,
+  });
 
   const createGroupMutation = useMutation({
     mutationFn: async (group: string) => {
@@ -50,28 +54,62 @@ export default function GroupManagementDialog({
     }
   });
 
-  const updateContactGroupsMutation = useMutation({
+  const updateGroupMutation = useMutation({
     mutationFn: async ({ oldGroup, newGroup }: { oldGroup: string; newGroup: string }) => {
       const response = await fetch(`/api/contacts/groups/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ oldGroup, newGroup }),
       });
+      if (!response.ok) {
+        throw new Error("Failed to update group");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      toast({ title: "Groups updated successfully" });
+      toast({ title: "Group updated successfully" });
       setEditingGroup(null);
     },
+    onError: () => {
+      toast({ 
+        title: "Failed to update group",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (groupName: string) => {
+      const response = await fetch(`/api/contacts/groups/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group: groupName }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete group");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      toast({ title: "Group deleted successfully" });
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete group",
+        variant: "destructive"
+      });
+    }
   });
 
   const handleAddGroup = async () => {
     if (!newGroup.trim()) return;
 
     // Check if group already exists
-    if (existingGroups.includes(newGroup)) {
+    if (groups?.some(g => g.name === newGroup.trim())) {
       toast({ 
         title: "Group already exists",
         variant: "destructive"
@@ -79,14 +117,14 @@ export default function GroupManagementDialog({
       return;
     }
 
-    createGroupMutation.mutate(newGroup);
+    createGroupMutation.mutate(newGroup.trim());
   };
 
   const handleUpdateGroup = async () => {
     if (!editingGroup || !editingGroup.current.trim()) return;
 
-    // Check if new name already exists
-    if (existingGroups.includes(editingGroup.current) && 
+    // Check if new name already exists and it's not the same as the original
+    if (groups?.some(g => g.name === editingGroup.current.trim()) && 
         editingGroup.current !== editingGroup.original) {
       toast({ 
         title: "Group already exists",
@@ -95,10 +133,16 @@ export default function GroupManagementDialog({
       return;
     }
 
-    updateContactGroupsMutation.mutate({
+    updateGroupMutation.mutate({
       oldGroup: editingGroup.original,
-      newGroup: editingGroup.current,
+      newGroup: editingGroup.current.trim(),
     });
+  };
+
+  const handleDeleteGroup = async (groupName: string) => {
+    if (window.confirm(`Are you sure you want to delete the group "${groupName}"?`)) {
+      deleteGroupMutation.mutate(groupName);
+    }
   };
 
   return (
@@ -118,12 +162,12 @@ export default function GroupManagementDialog({
             <Button onClick={handleAddGroup}>Add</Button>
           </div>
           <div className="space-y-2">
-            {existingGroups.map((group) => (
+            {groups?.map((group) => (
               <div
-                key={group}
+                key={group.id}
                 className="flex items-center justify-between p-2 rounded-md border"
               >
-                {editingGroup?.original === group ? (
+                {editingGroup?.original === group.name ? (
                   <div className="flex-1 flex space-x-2">
                     <Input
                       value={editingGroup.current}
@@ -145,16 +189,23 @@ export default function GroupManagementDialog({
                   </div>
                 ) : (
                   <>
-                    <span>{group}</span>
+                    <span>{group.name}</span>
                     <div className="space-x-2">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          setEditingGroup({ original: group, current: group })
+                          setEditingGroup({ original: group.name, current: group.name })
                         }
                       >
                         <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteGroup(group.name)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </div>
                   </>
