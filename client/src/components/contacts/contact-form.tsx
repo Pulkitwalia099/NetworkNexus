@@ -9,6 +9,7 @@ import { Contact } from "@db/schema";
 import { z } from "zod";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -41,6 +42,10 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
       group: contact?.group ?? "",
       tags: contact?.tags as string[] ?? [],
     },
+  });
+
+  const { data: groups } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ["/api/groups"],
   });
 
   const [newTag, setNewTag] = useState("");
@@ -158,11 +163,11 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="client">Client</SelectItem>
-                      <SelectItem value="colleague">Colleague</SelectItem>
-                      <SelectItem value="friend">Friend</SelectItem>
-                      <SelectItem value="family">Family</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {groups?.map((group) => (
+                        <SelectItem key={group.id} value={group.name}>
+                          {group.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
