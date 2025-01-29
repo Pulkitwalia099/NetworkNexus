@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags, Users2, Plus } from "lucide-react";
-import { Contact } from "@db/schema";
+import { Contact, Task, Interaction } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
 import ContactDetail from "@/components/contacts/contact-detail";
 import {
@@ -18,9 +18,13 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const MotionDiv = motion.div;
+
+interface GroupedData {
+  [key: number]: Array<Interaction | Task>;
+}
 
 export default function Contacts() {
   const [search, setSearch] = useState("");
@@ -38,12 +42,12 @@ export default function Contacts() {
     queryKey: ["/api/contacts", search],
   });
 
-  const { data: interactions } = useQuery({
+  const { data: interactions } = useQuery<Interaction[]>({
     queryKey: ["/api/contacts/interactions"],
     enabled: !!contacts?.length,
   });
 
-  const { data: tasks } = useQuery({
+  const { data: tasks } = useQuery<Task[]>({
     queryKey: ["/api/contacts/tasks"],
     enabled: !!contacts?.length,
   });
@@ -87,8 +91,8 @@ export default function Contacts() {
 
   // Group interactions and tasks by contact
   const groupedInteractions = useMemo(() => {
-    const grouped: Record<number, any[]> = {};
-    if (interactions) {
+    const grouped: GroupedData = {};
+    if (interactions && Array.isArray(interactions)) {
       interactions.forEach(interaction => {
         if (!grouped[interaction.contactId]) {
           grouped[interaction.contactId] = [];
@@ -100,8 +104,8 @@ export default function Contacts() {
   }, [interactions]);
 
   const groupedTasks = useMemo(() => {
-    const grouped: Record<number, any[]> = {};
-    if (tasks) {
+    const grouped: GroupedData = {};
+    if (tasks && Array.isArray(tasks)) {
       tasks.forEach(task => {
         if (!grouped[task.contactId]) {
           grouped[task.contactId] = [];
