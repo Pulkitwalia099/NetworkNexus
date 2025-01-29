@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import ReactFlow, { 
   Node, 
@@ -8,11 +8,13 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Position,
-  MarkerType
+  MarkerType,
+  Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Header from "@/components/layout/header";
 import { Contact, Interaction } from "@db/schema";
+import { Button } from "@/components/ui/button";
 
 const nodeColors: Record<string, string> = {
   client: '#22c55e',    // Green
@@ -29,6 +31,8 @@ function generateNetworkData(contacts: Contact[], interactions: Interaction[]) {
     data: { 
       label: contact.name,
       group: contact.group || 'other',
+      email: contact.email,
+      company: contact.company,
     },
     position: { 
       x: Math.random() * 800, 
@@ -40,29 +44,40 @@ function generateNetworkData(contacts: Contact[], interactions: Interaction[]) {
       border: '1px solid #fff',
       borderRadius: '8px',
       padding: '10px',
-      width: 150,
+      width: 180,
     },
   }));
 
-  // Create edges from interactions
-  const edges: Edge[] = interactions
-    .filter(interaction => {
-      // Find all unique contact pairs that have interactions
-      const contactExists = contacts.some(c => c.id === interaction.contactId);
-      return contactExists;
-    })
-    .map((interaction, index) => ({
-      id: `e-${interaction.id}-${index}`,
-      source: interaction.contactId.toString(),
-      target: interaction.contactId.toString(),
-      label: interaction.type,
-      type: 'smoothstep',
-      animated: true,
-      style: { stroke: '#64748b' },
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-      },
-    }));
+  // Create edges between contacts that have interactions
+  const edges: Edge[] = [];
+  const contactIds = contacts.map(c => c.id);
+
+  interactions.forEach((interaction, index) => {
+    // For each interaction, create an edge to another random contact
+    const sourceId = interaction.contactId;
+    const availableTargets = contactIds.filter(id => id !== sourceId);
+
+    if (availableTargets.length > 0) {
+      const targetId = availableTargets[Math.floor(Math.random() * availableTargets.length)];
+      edges.push({
+        id: `e-${interaction.id}-${index}`,
+        source: sourceId.toString(),
+        target: targetId.toString(),
+        label: interaction.type,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#64748b' },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+        },
+        data: {
+          date: interaction.date,
+          title: interaction.title,
+          description: interaction.description,
+        }
+      });
+    }
+  });
 
   return { nodes, edges };
 }
@@ -88,6 +103,14 @@ export default function NetworkView() {
     }
   }, [contacts, interactions, setNodes, setEdges]);
 
+  const handleReorganize = () => {
+    if (contacts && interactions) {
+      const { nodes: newNodes, edges: newEdges } = generateNetworkData(contacts, interactions);
+      setNodes(newNodes);
+      setEdges(newEdges);
+    }
+  };
+
   return (
     <div>
       <Header title="Contact Network" />
@@ -102,6 +125,11 @@ export default function NetworkView() {
         >
           <Background />
           <Controls />
+          <Panel position="top-right">
+            <Button onClick={handleReorganize}>
+              Reorganize Network
+            </Button>
+          </Panel>
         </ReactFlow>
       </div>
     </div>
