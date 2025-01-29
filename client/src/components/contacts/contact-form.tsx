@@ -19,6 +19,10 @@ const contactSchema = z.object({
   title: z.string().optional().or(z.literal("")),
   group: z.string().optional().or(z.literal("")),
   tags: z.array(z.string()).default([]),
+  linkedinUrl: z.string().url().optional().or(z.literal("")),
+  twitterHandle: z.string().optional().or(z.literal("")),
+  githubUsername: z.string().optional().or(z.literal("")),
+  socialProfiles: z.record(z.string()).default({}),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
@@ -42,10 +46,13 @@ export default function ContactForm({ contact, open, onClose, onSubmit, onDelete
       title: "",
       group: "",
       tags: [],
+      linkedinUrl: "",
+      twitterHandle: "",
+      githubUsername: "",
+      socialProfiles: {},
     },
   });
 
-  // Reset form with contact data when editing
   useEffect(() => {
     if (contact) {
       form.reset({
@@ -56,6 +63,10 @@ export default function ContactForm({ contact, open, onClose, onSubmit, onDelete
         title: contact.title ?? "",
         group: contact.group ?? "",
         tags: contact.tags as string[] ?? [],
+        linkedinUrl: contact.linkedinUrl ?? "",
+        twitterHandle: contact.twitterHandle ?? "",
+        githubUsername: contact.githubUsername ?? "",
+        socialProfiles: contact.socialProfiles as Record<string, string> ?? {},
       });
     } else {
       form.reset({
@@ -66,6 +77,10 @@ export default function ContactForm({ contact, open, onClose, onSubmit, onDelete
         title: "",
         group: "",
         tags: [],
+        linkedinUrl: "",
+        twitterHandle: "",
+        githubUsername: "",
+        socialProfiles: {},
       });
     }
   }, [contact, form]);
@@ -89,7 +104,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit, onDelete
 
   const handleRemoveTag = (tagToRemove: string) => {
     const currentTags = form.getValues("tags");
-    form.setValue("tags", currentTags.filter(tag => tag !== tagToRemove));
+    form.setValue("tags", currentTags.filter((tag) => tag !== tagToRemove));
   };
 
   return (
@@ -179,10 +194,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit, onDelete
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Group</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a group" />
@@ -239,10 +251,52 @@ export default function ContactForm({ contact, open, onClose, onSubmit, onDelete
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="linkedinUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>LinkedIn URL</FormLabel>
+                  <FormControl>
+                    <Input type="url" placeholder="https://linkedin.com/in/username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="twitterHandle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Twitter Handle</FormLabel>
+                  <FormControl>
+                    <Input placeholder="@username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="githubUsername"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>GitHub Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="flex justify-between">
               {contact && onDelete && (
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   variant="destructive"
                   onClick={() => {
                     if (window.confirm("Are you sure you want to delete this contact?")) {

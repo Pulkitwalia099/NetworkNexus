@@ -14,6 +14,12 @@ export const contacts = pgTable("contacts", {
   notes: text("notes"),
   group: text("group"),
   tags: jsonb("tags").default([]).notNull(),
+  // Add social media fields
+  linkedinUrl: text("linkedin_url"),
+  twitterHandle: text("twitter_handle"),
+  githubUsername: text("github_username"),
+  // Store additional social profiles as JSON
+  socialProfiles: jsonb("social_profiles").default({}).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
