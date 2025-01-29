@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import ReactFlow, { 
   Node, 
@@ -6,34 +6,63 @@ import ReactFlow, {
   Controls,
   Background,
   useNodesState,
-  useEdgesState
+  useEdgesState,
+  Position,
+  MarkerType
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Header from "@/components/layout/header";
 import { Contact, Interaction } from "@db/schema";
 
+const nodeColors: Record<string, string> = {
+  client: '#22c55e',    // Green
+  colleague: '#3b82f6', // Blue
+  friend: '#f59e0b',    // Orange
+  family: '#ec4899',    // Pink
+  other: '#6b7280',     // Gray
+};
+
 function generateNetworkData(contacts: Contact[], interactions: Interaction[]) {
+  // Create nodes for each contact
   const nodes: Node[] = contacts.map((contact) => ({
     id: contact.id.toString(),
     data: { 
       label: contact.name,
-      group: contact.group,
-      tags: contact.tags
+      group: contact.group || 'other',
     },
     position: { 
       x: Math.random() * 800, 
       y: Math.random() * 600 
     },
-    className: `contact-node group-${contact.group}`,
+    style: {
+      background: nodeColors[contact.group || 'other'],
+      color: '#fff',
+      border: '1px solid #fff',
+      borderRadius: '8px',
+      padding: '10px',
+      width: 150,
+    },
   }));
 
-  const edges: Edge[] = interactions.map((interaction) => ({
-    id: `e-${interaction.id}`,
-    source: interaction.contactId.toString(),
-    target: interaction.contactId.toString(),
-    label: interaction.type,
-    animated: true,
-  }));
+  // Create edges from interactions
+  const edges: Edge[] = interactions
+    .filter(interaction => {
+      // Find all unique contact pairs that have interactions
+      const contactExists = contacts.some(c => c.id === interaction.contactId);
+      return contactExists;
+    })
+    .map((interaction, index) => ({
+      id: `e-${interaction.id}-${index}`,
+      source: interaction.contactId.toString(),
+      target: interaction.contactId.toString(),
+      label: interaction.type,
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: '#64748b' },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+      },
+    }));
 
   return { nodes, edges };
 }
@@ -42,7 +71,7 @@ export default function NetworkView() {
   const { data: contacts } = useQuery<Contact[]>({ 
     queryKey: ["/api/contacts"] 
   });
-  
+
   const { data: interactions } = useQuery<Interaction[]>({ 
     queryKey: ["/api/interactions"] 
   });
@@ -50,7 +79,8 @@ export default function NetworkView() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  const onInit = useCallback(() => {
+  // Update network data whenever contacts or interactions change
+  useEffect(() => {
     if (contacts && interactions) {
       const { nodes: initialNodes, edges: initialEdges } = generateNetworkData(contacts, interactions);
       setNodes(initialNodes);
@@ -67,8 +97,8 @@ export default function NetworkView() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onInit={onInit}
           fitView
+          attributionPosition="bottom-left"
         >
           <Background />
           <Controls />
