@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Contact, Meeting } from "@db/schema";
@@ -19,27 +20,27 @@ const meetingSchema = z.object({
 type MeetingFormData = z.infer<typeof meetingSchema>;
 
 interface MeetingFormProps {
-  date: Date | null;
+  date: Date;
   contacts: Contact[];
   onSubmit: (data: Partial<Meeting>) => void;
   onCancel: () => void;
+  meeting?: Meeting | null;
 }
 
-export default function MeetingForm({ date, contacts, onSubmit, onCancel }: MeetingFormProps) {
+export default function MeetingForm({ date, contacts, onSubmit, onCancel, meeting }: MeetingFormProps) {
   const form = useForm<MeetingFormData>({
     resolver: zodResolver(meetingSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      date: date ? date.toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
-      location: "",
-      status: "scheduled",
-      contactId: undefined,
+      title: meeting?.title ?? "",
+      description: meeting?.description ?? "",
+      date: meeting ? new Date(meeting.date).toISOString().slice(0, 16) : date.toISOString().slice(0, 16),
+      location: meeting?.location ?? "",
+      status: meeting?.status ?? "scheduled",
+      contactId: meeting?.contactId,
     },
   });
 
   const handleSubmit = (data: MeetingFormData) => {
-    // Convert the date string to a Date object before submitting
     const submissionData = {
       ...data,
       date: new Date(data.date).toISOString(),
@@ -72,7 +73,7 @@ export default function MeetingForm({ date, contacts, onSubmit, onCancel }: Meet
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Textarea {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -164,7 +165,7 @@ export default function MeetingForm({ date, contacts, onSubmit, onCancel }: Meet
             Cancel
           </Button>
           <Button type="submit">
-            Schedule Meeting
+            {meeting ? 'Update Meeting' : 'Schedule Meeting'}
           </Button>
         </div>
       </form>

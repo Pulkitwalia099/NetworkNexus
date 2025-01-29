@@ -1,29 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
-import MeetingItem from "@/components/meetings/meeting-item";
+import MeetingCard from "@/components/meetings/meeting-card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { Plus } from "lucide-react";
-import { format } from "date-fns";
-import { Meeting } from "@db/schema";
+import { Meeting, Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
-
-interface MeetingFormData {
-  title: string;
-  description: string;
-  location: string;
-  status: string;
-  date: Date;
-}
+import MeetingForm from "@/components/calendar/meeting-form";
 
 export default function Meetings() {
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -32,25 +18,16 @@ export default function Meetings() {
     queryKey: ["/api/meetings"],
   });
 
-  const form = useForm<MeetingFormData>({
-    defaultValues: {
-      title: "",
-      description: "",
-      location: "",
-      status: "scheduled",
-      date: new Date(),
-    },
+  const { data: contacts } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
   });
 
   const createMutation = useMutation({
-    mutationFn: async (meeting: MeetingFormData) => {
+    mutationFn: async (data: Partial<Meeting>) => {
       const response = await fetch("/api/meetings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...meeting,
-          date: meeting.date.toISOString(),
-        }),
+        body: JSON.stringify(data),
       });
       return response.json();
     },
@@ -58,12 +35,47 @@ export default function Meetings() {
       queryClient.invalidateQueries({ queryKey: ["/api/meetings"] });
       toast({ title: "Meeting scheduled successfully" });
       setIsFormOpen(false);
-      form.reset();
+      setSelectedMeeting(null);
     },
   });
 
-  const onSubmit = (data: MeetingFormData) => {
-    createMutation.mutate(data);
+  const updateMutation = useMutation({
+    mutationFn: async (data: Partial<Meeting>) => {
+      const response = await fetch(`/api/meetings/${data.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meetings"] });
+      toast({ title: "Meeting updated successfully" });
+      setIsFormOpen(false);
+      setSelectedMeeting(null);
+    },
+  });
+
+  const handleSubmit = (data: Partial<Meeting>) => {
+    if (selectedMeeting) {
+      updateMutation.mutate({ ...data, id: selectedMeeting.id });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
+    setIsFormOpen(true);
+  };
+
+  const handleAddNew = () => {
+    setSelectedMeeting(null);
+    setIsFormOpen(true);
+  };
+
+  const getContactForMeeting = (meeting: Meeting) => {
+    return contacts?.find(contact => contact.id === meeting.contactId);
   };
 
   return (
@@ -72,7 +84,7 @@ export default function Meetings() {
         title="Meetings" 
         action={{
           label: "Schedule Meeting",
-          onClick: () => setIsFormOpen(true)
+          onClick: handleAddNew
         }}
       />
 
@@ -87,115 +99,40 @@ export default function Meetings() {
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {meetings?.map((meeting) => (
-              <MeetingItem key={meeting.id} meeting={meeting} />
+              <MeetingCard
+                key={meeting.id}
+                meeting={meeting}
+                contact={getContactForMeeting(meeting)}
+                onEdit={() => handleEdit(meeting)}
+              />
             ))}
+            {meetings?.length === 0 && (
+              <p className="text-center text-muted-foreground col-span-full mt-8">
+                No meetings scheduled
+              </p>
+            )}
           </div>
         )}
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Schedule Meeting</DialogTitle>
+              <DialogTitle>
+                {selectedMeeting ? 'Edit Meeting' : 'Schedule Meeting'}
+              </DialogTitle>
             </DialogHeader>
-
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Title</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Location</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          className="rounded-md border"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="scheduled">Scheduled</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsFormOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Schedule Meeting</Button>
-                </div>
-              </form>
-            </Form>
+            <MeetingForm
+              date={selectedMeeting ? new Date(selectedMeeting.date) : new Date()}
+              contacts={contacts ?? []}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setIsFormOpen(false);
+                setSelectedMeeting(null);
+              }}
+              meeting={selectedMeeting}
+            />
           </DialogContent>
         </Dialog>
       </div>

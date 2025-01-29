@@ -156,6 +156,26 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put("/api/meetings/:id", async (req, res) => {
+    try {
+      const meetingData = {
+        ...req.body,
+        date: new Date(req.body.date),
+        updatedAt: new Date(),
+      };
+
+      const meeting = await db.update(meetings)
+        .set(meetingData)
+        .where(eq(meetings.id, parseInt(req.params.id)))
+        .returning();
+
+      res.json(meeting[0]);
+    } catch (error) {
+      console.error("Error updating meeting:", error);
+      res.status(500).json({ error: "Failed to update meeting" });
+    }
+  });
+
   // Tasks API 
   app.get("/api/tasks", async (_req, res) => {
     try {
