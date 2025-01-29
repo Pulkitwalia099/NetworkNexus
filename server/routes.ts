@@ -241,6 +241,22 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add this new endpoint just before the existing contact connections endpoints
+  app.get("/api/connections", async (_req, res) => {
+    try {
+      const results = await db.query.contactConnections.findMany({
+        with: {
+          sourceContact: true,
+          targetContact: true,
+        },
+      });
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching all connections:", error);
+      res.status(500).json({ error: "Failed to fetch connections" });
+    }
+  });
+
   // Contact Connections API
   app.get("/api/contacts/:id/connections", async (req, res) => {
     try {
