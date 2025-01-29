@@ -215,7 +215,7 @@ export default function Contacts() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
+    <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
       <Header 
         title="Contacts" 
         action={{
@@ -224,26 +224,26 @@ export default function Contacts() {
         }}
         extraButtons={
           <motion.div 
-            className="flex items-center space-x-2"
+            className="flex items-center space-x-3"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
           >
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setIsGroupManagementOpen(true)}
               title="Manage Groups"
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/5 transition-colors"
             >
               <Users2 className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="icon"
-                  className="relative hover:bg-primary/10"
+                  className="relative hover:bg-primary/5 transition-colors"
                   title="Filter by tags"
                 >
                   <Tags className="h-4 w-4" />
@@ -254,7 +254,7 @@ export default function Contacts() {
                   )}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56 backdrop-blur-lg">
                 {allTags.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-2">No tags available</p>
                 ) : (
@@ -276,30 +276,31 @@ export default function Contacts() {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            <div className="h-4 w-px bg-border/50" />
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => handleExport('json')}
               title="Export as JSON"
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/5 transition-colors"
             >
               <FileJson className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => handleExport('csv')}
               title="Export as CSV"
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/5 transition-colors"
             >
               <FileSpreadsheet className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setIsImportOpen(true)}
               title="Import Contacts"
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/5 transition-colors"
             >
               <Upload className="h-4 w-4" />
             </Button>
@@ -307,30 +308,30 @@ export default function Contacts() {
         }
       />
 
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="px-6 py-8 max-w-7xl mx-auto">
         <motion.div 
-          className="w-full max-w-md mb-6"
+          className="w-full max-w-md mx-auto mb-8"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
           <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search contacts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 bg-background/50 backdrop-blur-sm border-opacity-50"
+              className="pl-10 h-12 bg-background/50 backdrop-blur-sm border-border/50 rounded-full"
             />
           </div>
         </motion.div>
 
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
-                className="h-32 bg-muted animate-pulse rounded-lg"
+                className="h-32 bg-accent/20 animate-pulse rounded-xl backdrop-blur-sm"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.1 }}
@@ -342,7 +343,7 @@ export default function Contacts() {
             <AnimatePresence>
               {selectedTags.length > 0 && (
                 <motion.div 
-                  className="mb-4 flex flex-wrap gap-2"
+                  className="mb-6 flex flex-wrap gap-2"
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
@@ -350,7 +351,7 @@ export default function Contacts() {
                   {selectedTags.map(tag => (
                     <motion.span
                       key={tag}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/5 text-primary border border-primary/10"
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
@@ -358,7 +359,7 @@ export default function Contacts() {
                       {tag}
                       <button
                         onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
-                        className="ml-1 hover:text-destructive"
+                        className="ml-1 hover:text-destructive transition-colors"
                       >
                         ×
                       </button>
@@ -367,7 +368,7 @@ export default function Contacts() {
                   {selectedTags.length > 1 && (
                     <button
                       onClick={() => setSelectedTags([])}
-                      className="text-xs text-muted-foreground hover:text-foreground"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                       Clear all
                     </button>
@@ -377,7 +378,7 @@ export default function Contacts() {
             </AnimatePresence>
 
             <motion.div 
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+              className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.3 }}
@@ -389,7 +390,11 @@ export default function Contacts() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    transition={{ 
+                      duration: 0.3, 
+                      delay: index * 0.05,
+                      ease: [0.23, 1, 0.32, 1]
+                    }}
                   >
                     <ContactCard
                       contact={contact}
@@ -402,14 +407,16 @@ export default function Contacts() {
             </motion.div>
 
             {filteredAndGroupedContacts.length === 0 && (
-              <motion.p 
-                className="text-center text-muted-foreground mt-8"
+              <motion.div 
+                className="text-center mt-12"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                No contacts found {selectedTags.length > 0 && "with selected tags"}
-              </motion.p>
+                <p className="text-muted-foreground">
+                  No contacts found {selectedTags.length > 0 && "with selected tags"}
+                </p>
+              </motion.div>
             )}
           </>
         )}
