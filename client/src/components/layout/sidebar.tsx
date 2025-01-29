@@ -12,6 +12,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Contacts', href: '/contacts', icon: Users },
+  { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Meetings', href: '/meetings', icon: Calendar },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
   { name: 'Network', href: '/network', icon: Network },
