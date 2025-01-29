@@ -38,9 +38,19 @@ export default function MeetingForm({ date, contacts, onSubmit, onCancel }: Meet
     },
   });
 
+  const handleSubmit = (data: MeetingFormData) => {
+    // Convert the date string to a Date object before submitting
+    const submissionData = {
+      ...data,
+      date: new Date(data.date).toISOString(),
+      contactId: data.contactId,
+    };
+    onSubmit(submissionData);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="title"
