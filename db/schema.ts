@@ -69,10 +69,10 @@ export const tasks = pgTable("tasks", {
   status: text("status").default("pending"),
   category: text("category"),
   contactId: integer("contact_id").references(() => contacts.id),
+  tags: jsonb("tags").default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-
 
 export const contactRelations = relations(contacts, ({ many }) => ({
   meetings: many(meetings),
@@ -121,3 +121,4 @@ export type ContactConnection = typeof contactConnections.$inferSelect;
 export type Meeting = typeof meetings.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Interaction = typeof interactions.$inferSelect;
+export type InsertTask = typeof tasks.$inferInsert;

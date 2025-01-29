@@ -289,14 +289,19 @@ export function registerRoutes(app: Express): Server {
           // Create task with contact tag
           const [createdTask] = await tx.insert(tasks)
             .values({
-              ...task,
+              title: task.title,
+              description: task.description,
               dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+              priority: task.priority,
+              category: task.category || 'follow-up',
               contactId: contactId,
               tags: taskTags,
               createdAt: new Date(),
               updatedAt: new Date(),
             })
             .returning();
+
+          console.log('Created task:', createdTask); // Additional debug log
 
           return { interaction, task: createdTask };
         }

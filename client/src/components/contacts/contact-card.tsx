@@ -42,7 +42,7 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
             priority: data.taskPriority,
             category: 'follow-up',
             contactId: contact.id,
-            tags: [], // Initialize empty tags array
+            tags: [] as string[], // Explicitly type and initialize empty array
           } : undefined,
         }),
       });
