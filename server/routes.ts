@@ -5,6 +5,7 @@ import { contacts, meetings, tasks, interactions, contactConnections } from "@db
 import { eq, like, desc, and, or } from "drizzle-orm";
 import { createObjectCsvStringifier } from "csv-writer";
 import { parse } from "csv-parse/sync";
+import { sql } from 'drizzle-orm/sql';
 
 export function registerRoutes(app: Express): Server {
   // Check server health
@@ -265,11 +266,45 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/contacts/groups/create", async (req, res) => {
+    try {
+      const { group } = req.body;
+
+      // Insert the new group directly into the groups table
+      const result = await db.execute(
+        sql`INSERT INTO groups (name) VALUES (${group}) RETURNING *`
+      );
+
+      res.json({ success: true, group: result.rows[0] });
+    } catch (error) {
+      console.error("Error creating group:", error);
+      res.status(500).json({ error: "Failed to create group" });
+    }
+  });
+
+  app.get("/api/groups", async (_req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT * FROM groups 
+        ORDER BY name ASC
+      `);
+      res.json(result.rows);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      res.status(500).json({ error: "Failed to fetch groups" });
+    }
+  });
+
   app.post("/api/contacts/groups/update", async (req, res) => {
     try {
       const { oldGroup, newGroup } = req.body;
 
-      // Update all contacts that have the old group name
+      // First update the group name in the groups table
+      await db.execute(
+        sql`UPDATE groups SET name = ${newGroup}, updated_at = NOW() WHERE name = ${oldGroup}`
+      );
+
+      // Then update all contacts that reference this group
       const updatedContacts = await db.update(contacts)
         .set({ 
           group: newGroup,
@@ -285,26 +320,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/contacts/groups/create", async (req, res) => {
-    try {
-      const { group } = req.body;
-
-      // Create a placeholder contact with the new group to establish it
-      const contact = await db.insert(contacts)
-        .values({
-          name: `${group} (Group)`,
-          group: group,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      res.json({ success: true, group });
-    } catch (error) {
-      console.error("Error creating group:", error);
-      res.status(500).json({ error: "Failed to create group" });
-    }
-  });
 
   // Add this new endpoint just before the existing contact connections endpoints
   app.get("/api/connections", async (_req, res) => {
