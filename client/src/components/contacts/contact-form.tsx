@@ -1,9 +1,21 @@
 import { useForm } from "react-hook-form";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Contact } from "@db/schema";
+import { z } from "zod";
+
+const contactSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
+  company: z.string().optional().or(z.literal("")),
+  title: z.string().optional().or(z.literal("")),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
 
 interface ContactFormProps {
   contact?: Contact;
@@ -13,7 +25,8 @@ interface ContactFormProps {
 }
 
 export default function ContactForm({ contact, open, onClose, onSubmit }: ContactFormProps) {
-  const form = useForm<Partial<Contact>>({
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
     defaultValues: contact || {
       name: "",
       email: "",
@@ -43,6 +56,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -56,6 +70,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
                   <FormControl>
                     <Input type="email" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -69,6 +84,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
                   <FormControl>
                     <Input type="tel" {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -82,6 +98,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -95,6 +112,7 @@ export default function ContactForm({ contact, open, onClose, onSubmit }: Contac
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
