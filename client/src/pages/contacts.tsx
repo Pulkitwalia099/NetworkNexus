@@ -34,9 +34,12 @@ export default function Contacts() {
     queryKey: ["/api/contacts", search],
     queryFn: async () => {
       const url = search
-        ? `/api/contacts?search=${encodeURIComponent(search)}`
+        ? `/api/contacts?search=${encodeURIComponent(search.trim())}`
         : "/api/contacts";
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch contacts');
+      }
       return response.json();
     },
   });
