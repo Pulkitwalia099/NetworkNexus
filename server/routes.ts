@@ -248,17 +248,42 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update the POST endpoint for interactions to handle task creation
   app.post("/api/contacts/:id/interactions", async (req, res) => {
     try {
-      const interaction = await db.insert(interactions)
-        .values({
-          ...req.body,
-          contactId: parseInt(req.params.id),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-      res.json(interaction[0]);
+      const { task, ...interactionData } = req.body;
+
+      // Start a transaction to create both interaction and task
+      const result = await db.transaction(async (tx) => {
+        // Create the interaction first
+        const [interaction] = await tx.insert(interactions)
+          .values({
+            ...interactionData,
+            contactId: parseInt(req.params.id),
+            date: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .returning();
+
+        // If task data is provided, create a related task
+        if (task) {
+          const [createdTask] = await tx.insert(tasks)
+            .values({
+              ...task,
+              contactId: parseInt(req.params.id),
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .returning();
+
+          return { interaction, task: createdTask };
+        }
+
+        return { interaction };
+      });
+
+      res.json(result);
     } catch (error) {
       console.error("Error creating interaction:", error);
       res.status(500).json({ error: "Failed to create interaction" });

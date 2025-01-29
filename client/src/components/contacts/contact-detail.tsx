@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Contact, Interaction } from "@db/schema";
+import { Contact, Interaction, Task } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -32,24 +32,48 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
   );
 
   const createInteractionMutation = useMutation({
-    mutationFn: async (data: Partial<Interaction>) => {
+    mutationFn: async (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
+      const { createTask, taskTitle, taskDueDate, taskPriority, ...interactionData } = data;
+
       const response = await fetch(`/api/contacts/${contact.id}/interactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...interactionData,
+          task: createTask ? {
+            title: taskTitle,
+            dueDate: taskDueDate,
+            priority: taskPriority,
+            category: 'follow-up',
+            contactId: contact.id,
+          } : undefined,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to create interaction");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: [`/api/contacts/${contact.id}/interactions`] 
       });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/contacts/${contact.id}/tasks`] 
+      });
       toast({ title: "Interaction added successfully" });
       setIsInteractionFormOpen(false);
     },
+    onError: () => {
+      toast({ 
+        title: "Failed to create interaction", 
+        variant: "destructive" 
+      });
+    },
   });
 
-  const handleAddInteraction = (data: Partial<Interaction>) => {
+  const handleAddInteraction = (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
     createInteractionMutation.mutate(data);
   };
 
