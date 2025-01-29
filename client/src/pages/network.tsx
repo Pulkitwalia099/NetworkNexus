@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ReactFlow, { 
   Node, 
   Edge,
@@ -13,8 +13,10 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Header from "@/components/layout/header";
-import { Contact, Interaction } from "@db/schema";
+import { Contact, ContactConnection } from "@db/schema";
 import { Button } from "@/components/ui/button";
+import ConnectionForm from "@/components/contacts/connection-form";
+import { useToast } from "@/hooks/use-toast";
 
 const nodeColors: Record<string, string> = {
   client: '#22c55e',    // Green
@@ -24,7 +26,7 @@ const nodeColors: Record<string, string> = {
   other: '#6b7280',     // Gray
 };
 
-function generateNetworkData(contacts: Contact[], interactions: Interaction[]) {
+function generateNetworkData(contacts: Contact[], connections: ContactConnection[]) {
   // Create nodes for each contact
   const nodes: Node[] = contacts.map((contact) => ({
     id: contact.id.toString(),
@@ -48,64 +50,89 @@ function generateNetworkData(contacts: Contact[], interactions: Interaction[]) {
     },
   }));
 
-  // Create edges between contacts that have interactions
-  const edges: Edge[] = [];
-  const contactIds = contacts.map(c => c.id);
-
-  interactions.forEach((interaction, index) => {
-    // For each interaction, create an edge to another random contact
-    const sourceId = interaction.contactId;
-    const availableTargets = contactIds.filter(id => id !== sourceId);
-
-    if (availableTargets.length > 0) {
-      const targetId = availableTargets[Math.floor(Math.random() * availableTargets.length)];
-      edges.push({
-        id: `e-${interaction.id}-${index}`,
-        source: sourceId.toString(),
-        target: targetId.toString(),
-        label: interaction.type,
-        type: 'smoothstep',
-        animated: true,
-        style: { stroke: '#64748b' },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-        },
-        data: {
-          date: interaction.date,
-          title: interaction.title,
-          description: interaction.description,
-        }
-      });
+  // Create edges from connections
+  const edges: Edge[] = connections.map((connection) => ({
+    id: `e-${connection.id}`,
+    source: connection.sourceContactId.toString(),
+    target: connection.targetContactId.toString(),
+    label: connection.relationshipType,
+    type: 'smoothstep',
+    animated: true,
+    style: { 
+      stroke: '#64748b',
+      strokeWidth: connection.strength,
+    },
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+    },
+    data: {
+      tags: connection.tags,
+      notes: connection.notes,
+      strength: connection.strength,
     }
-  });
+  }));
 
   return { nodes, edges };
 }
 
 export default function NetworkView() {
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [isConnectionFormOpen, setIsConnectionFormOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data: contacts } = useQuery<Contact[]>({ 
     queryKey: ["/api/contacts"] 
   });
 
-  const { data: interactions } = useQuery<Interaction[]>({ 
-    queryKey: ["/api/interactions"] 
+  const { data: connections } = useQuery<ContactConnection[]>({ 
+    queryKey: ["/api/connections"] 
   });
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Update network data whenever contacts or interactions change
+  // Create connection mutation
+  const createConnectionMutation = useMutation({
+    mutationFn: async (data: Partial<ContactConnection>) => {
+      const response = await fetch('/api/contacts/connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/connections"] });
+      toast({ title: "Connection created successfully" });
+      setIsConnectionFormOpen(false);
+    },
+  });
+
+  // Update network data whenever contacts or connections change
   useEffect(() => {
-    if (contacts && interactions) {
-      const { nodes: initialNodes, edges: initialEdges } = generateNetworkData(contacts, interactions);
+    if (contacts && connections) {
+      const { nodes: initialNodes, edges: initialEdges } = generateNetworkData(contacts, connections);
       setNodes(initialNodes);
       setEdges(initialEdges);
     }
-  }, [contacts, interactions, setNodes, setEdges]);
+  }, [contacts, connections, setNodes, setEdges]);
+
+  const handleNodeClick = (event: any, node: Node) => {
+    const contact = contacts?.find(c => c.id.toString() === node.id);
+    if (contact) {
+      setSelectedContact(contact);
+      setIsConnectionFormOpen(true);
+    }
+  };
+
+  const handleCreateConnection = (data: Partial<ContactConnection>) => {
+    createConnectionMutation.mutate(data);
+  };
 
   const handleReorganize = () => {
-    if (contacts && interactions) {
-      const { nodes: newNodes, edges: newEdges } = generateNetworkData(contacts, interactions);
+    if (contacts && connections) {
+      const { nodes: newNodes, edges: newEdges } = generateNetworkData(contacts, connections);
       setNodes(newNodes);
       setEdges(newEdges);
     }
@@ -120,6 +147,7 @@ export default function NetworkView() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
           fitView
           attributionPosition="bottom-left"
         >
@@ -132,6 +160,19 @@ export default function NetworkView() {
           </Panel>
         </ReactFlow>
       </div>
+
+      {selectedContact && contacts && (
+        <ConnectionForm
+          sourceContact={selectedContact}
+          availableContacts={contacts}
+          open={isConnectionFormOpen}
+          onClose={() => {
+            setIsConnectionFormOpen(false);
+            setSelectedContact(null);
+          }}
+          onSubmit={handleCreateConnection}
+        />
+      )}
     </div>
   );
 }

@@ -18,10 +18,22 @@ export const contacts = pgTable("contacts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const contactConnections = pgTable("contact_connections", {
+  id: serial("id").primaryKey(),
+  sourceContactId: integer("source_contact_id").references(() => contacts.id).notNull(),
+  targetContactId: integer("target_contact_id").references(() => contacts.id).notNull(),
+  relationshipType: text("relationship_type").notNull(), 
+  tags: jsonb("tags").default([]).notNull(), 
+  notes: text("notes"),
+  strength: integer("strength").default(1), 
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const interactions = pgTable("interactions", {
   id: serial("id").primaryKey(),
   contactId: integer("contact_id").references(() => contacts.id).notNull(),
-  type: text("type").notNull(), // e.g., 'email', 'call', 'meeting', 'note'
+  type: text("type").notNull(), 
   title: text("title").notNull(),
   description: text("description"),
   date: timestamp("date").notNull().defaultNow(),
@@ -55,11 +67,26 @@ export const tasks = pgTable("tasks", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Relations
+
 export const contactRelations = relations(contacts, ({ many }) => ({
   meetings: many(meetings),
   tasks: many(tasks),
-  interactions: many(interactions)
+  interactions: many(interactions),
+  sourceConnections: many(contactConnections, { relationName: "sourceContact" }),
+  targetConnections: many(contactConnections, { relationName: "targetContact" }),
+}));
+
+export const contactConnectionRelations = relations(contactConnections, ({ one }) => ({
+  sourceContact: one(contacts, {
+    fields: [contactConnections.sourceContactId],
+    references: [contacts.id],
+    relationName: "sourceContact"
+  }),
+  targetContact: one(contacts, {
+    fields: [contactConnections.targetContactId],
+    references: [contacts.id],
+    relationName: "targetContact"
+  }),
 }));
 
 export const meetingRelations = relations(meetings, ({ one }) => ({
@@ -83,8 +110,8 @@ export const interactionRelations = relations(interactions, ({ one }) => ({
   })
 }));
 
-// Schemas
 export type Contact = typeof contacts.$inferSelect;
+export type ContactConnection = typeof contactConnections.$inferSelect;
 export type Meeting = typeof meetings.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type Interaction = typeof interactions.$inferSelect;

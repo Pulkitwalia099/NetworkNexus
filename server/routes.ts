@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { contacts, meetings, tasks, interactions } from "@db/schema";
-import { eq, like, desc } from "drizzle-orm";
+import { contacts, meetings, tasks, interactions, contactConnections } from "@db/schema";
+import { eq, like, desc, and, or } from "drizzle-orm";
 import { createObjectCsvStringifier } from "csv-writer";
 import { parse } from "csv-parse/sync";
 
@@ -238,6 +238,59 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching interactions:", error);
       res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+
+  // Contact Connections API
+  app.get("/api/contacts/:id/connections", async (req, res) => {
+    try {
+      const contactId = parseInt(req.params.id);
+      const results = await db.query.contactConnections.findMany({
+        where: or(
+          eq(contactConnections.sourceContactId, contactId),
+          eq(contactConnections.targetContactId, contactId)
+        ),
+        with: {
+          sourceContact: true,
+          targetContact: true,
+        },
+      });
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching contact connections:", error);
+      res.status(500).json({ error: "Failed to fetch contact connections" });
+    }
+  });
+
+  app.post("/api/contacts/connections", async (req, res) => {
+    try {
+      const connection = await db.insert(contactConnections)
+        .values({
+          ...req.body,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      res.json(connection[0]);
+    } catch (error) {
+      console.error("Error creating contact connection:", error);
+      res.status(500).json({ error: "Failed to create contact connection" });
+    }
+  });
+
+  app.put("/api/contacts/connections/:id", async (req, res) => {
+    try {
+      const connection = await db.update(contactConnections)
+        .set({
+          ...req.body,
+          updatedAt: new Date(),
+        })
+        .where(eq(contactConnections.id, parseInt(req.params.id)))
+        .returning();
+      res.json(connection[0]);
+    } catch (error) {
+      console.error("Error updating contact connection:", error);
+      res.status(500).json({ error: "Failed to update contact connection" });
     }
   });
 
