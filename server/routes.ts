@@ -252,6 +252,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/contacts/:id/interactions", async (req, res) => {
     try {
       const { task, ...interactionData } = req.body;
+      const contactId = parseInt(req.params.id);
 
       // Start a transaction to create both interaction and task
       const result = await db.transaction(async (tx) => {
@@ -259,7 +260,7 @@ export function registerRoutes(app: Express): Server {
         const [interaction] = await tx.insert(interactions)
           .values({
             ...interactionData,
-            contactId: parseInt(req.params.id),
+            contactId: contactId,
             date: new Date(),
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -268,12 +269,19 @@ export function registerRoutes(app: Express): Server {
 
         // If task data is provided, create a related task
         if (task) {
-          // Ensure proper date conversion for the task
+          // Get contact details for tagging
+          const [contact] = await tx.select()
+            .from(contacts)
+            .where(eq(contacts.id, contactId))
+            .limit(1);
+
+          // Create task with contact tag
           const [createdTask] = await tx.insert(tasks)
             .values({
               ...task,
               dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-              contactId: parseInt(req.params.id),
+              contactId: contactId,
+              tags: [...(task.tags || []), `contact:${contact.name}`],
               createdAt: new Date(),
               updatedAt: new Date(),
             })
