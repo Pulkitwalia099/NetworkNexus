@@ -275,13 +275,24 @@ export function registerRoutes(app: Express): Server {
             .where(eq(contacts.id, contactId))
             .limit(1);
 
+          if (!contact) {
+            throw new Error(`Contact not found with id ${contactId}`);
+          }
+
+          // Initialize tags array and add contact tag
+          const existingTags = Array.isArray(task.tags) ? task.tags : [];
+          const contactTag = `contact:${contact.name}`;
+          const taskTags = [...existingTags, contactTag];
+
+          console.log('Creating task with tags:', taskTags); // Debug log
+
           // Create task with contact tag
           const [createdTask] = await tx.insert(tasks)
             .values({
               ...task,
               dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
               contactId: contactId,
-              tags: [...(task.tags || []), `contact:${contact.name}`],
+              tags: taskTags,
               createdAt: new Date(),
               updatedAt: new Date(),
             })
