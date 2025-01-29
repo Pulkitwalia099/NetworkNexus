@@ -8,9 +8,10 @@ interface HeaderProps {
     label: string;
     onClick: () => void;
   };
+  extraButtons?: React.ReactNode;
 }
 
-export default function Header({ title, action }: HeaderProps) {
+export default function Header({ title, action, extraButtons }: HeaderProps) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -21,6 +22,7 @@ export default function Header({ title, action }: HeaderProps) {
             {title}
           </h1>
           <div className="flex items-center space-x-2">
+            {extraButtons}
             {action && (
               <Button onClick={action.onClick}>
                 <Plus className="h-4 w-4 mr-2" />

@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { db } from "@db";
 import { contacts, meetings, tasks } from "@db/schema";
 import { eq, like, desc } from "drizzle-orm";
+import { createObjectCsvStringifier } from "csv-writer";
+import { parse } from "csv-parse/sync";
 
 export function registerRoutes(app: Express): Server {
   // Check server health
@@ -54,6 +56,70 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error updating contact:", error);
       res.status(500).json({ error: "Failed to update contact" });
+    }
+  });
+
+  app.get("/api/contacts/export", async (req, res) => {
+    try {
+      const format = req.query.format as string || 'json';
+      const results = await db.query.contacts.findMany({
+        orderBy: desc(contacts.updatedAt),
+      });
+
+      if (format === 'csv') {
+        const csvStringifier = createObjectCsvStringifier({
+          header: [
+            { id: 'name', title: 'Name' },
+            { id: 'email', title: 'Email' },
+            { id: 'phone', title: 'Phone' },
+            { id: 'company', title: 'Company' },
+            { id: 'title', title: 'Title' },
+            { id: 'notes', title: 'Notes' },
+            { id: 'group', title: 'Group' },
+          ]
+        });
+
+        const csvString = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(results);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=contacts.csv');
+        return res.send(csvString);
+      }
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename=contacts.json');
+      return res.json(results);
+    } catch (error) {
+      console.error("Error exporting contacts:", error);
+      res.status(500).json({ error: "Failed to export contacts" });
+    }
+  });
+
+  app.post("/api/contacts/import", async (req, res) => {
+    try {
+      const { data, format } = req.body;
+      let contacts;
+
+      if (format === 'csv') {
+        contacts = parse(data, {
+          columns: true,
+          skip_empty_lines: true
+        });
+      } else {
+        contacts = JSON.parse(data);
+      }
+
+      const inserted = await db.insert(contacts)
+        .values(contacts.map((contact: any) => ({
+          ...contact,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })))
+        .returning();
+
+      res.json(inserted);
+    } catch (error) {
+      console.error("Error importing contacts:", error);
+      res.status(500).json({ error: "Failed to import contacts" });
     }
   });
 
