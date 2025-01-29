@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Contacts from "@/pages/contacts";
 import Meetings from "@/pages/meetings";
 import Tasks from "@/pages/tasks";
+import NetworkView from "@/pages/network";
 import Sidebar from "@/components/layout/sidebar";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
           <Route path="/contacts" component={Contacts} />
           <Route path="/meetings" component={Meetings} />
           <Route path="/tasks" component={Tasks} />
+          <Route path="/network" component={NetworkView} />
           <Route component={NotFound} />
         </Switch>
       </main>

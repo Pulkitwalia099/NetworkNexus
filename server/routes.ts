@@ -228,6 +228,19 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // New route to get all interactions
+  app.get("/api/interactions", async (_req, res) => {
+    try {
+      const results = await db.query.interactions.findMany({
+        orderBy: desc(interactions.date),
+      });
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching interactions:", error);
+      res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

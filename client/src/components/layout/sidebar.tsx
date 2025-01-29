@@ -5,6 +5,7 @@ import {
   Users, 
   Calendar,
   CheckSquare,
+  Network,
   Settings
 } from "lucide-react";
 
@@ -13,6 +14,7 @@ const navigation = [
   { name: 'Contacts', href: '/contacts', icon: Users },
   { name: 'Meetings', href: '/meetings', icon: Calendar },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Network', href: '/network', icon: Network },
 ];
 
 export default function Sidebar() {
