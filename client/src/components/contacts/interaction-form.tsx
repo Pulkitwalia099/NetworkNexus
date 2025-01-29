@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,21 @@ import { useState } from "react";
 const interactionSchema = z.object({
   type: z.enum(['note', 'email', 'call', 'meeting']),
   title: z.string().min(1, "Title is required"),
-  description: z.string().optional().or(z.literal("")),
-  outcome: z.string().optional().or(z.literal("")),
+  description: z.string().optional(),
+  outcome: z.string().optional(),
   createTask: z.boolean().default(false),
   taskTitle: z.string().optional(),
   taskDueDate: z.string().optional(),
   taskPriority: z.enum(['low', 'medium', 'high']).optional(),
+}).refine((data) => {
+  // If createTask is true, require task fields
+  if (data.createTask) {
+    return data.taskTitle && data.taskDueDate && data.taskPriority;
+  }
+  return true;
+}, {
+  message: "Task details are required when creating a follow-up task",
+  path: ["taskTitle"],
 });
 
 type InteractionFormData = z.infer<typeof interactionSchema>;
@@ -95,7 +104,7 @@ export default function InteractionForm({ open, onClose, onSubmit }: Interaction
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder="Enter interaction title" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -109,7 +118,7 @@ export default function InteractionForm({ open, onClose, onSubmit }: Interaction
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
+                    <Textarea {...field} placeholder="Enter interaction details" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,94 +132,96 @@ export default function InteractionForm({ open, onClose, onSubmit }: Interaction
                 <FormItem>
                   <FormLabel>Outcome</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} placeholder="Enter interaction outcome" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="createTask"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        setShowTaskFields(!!checked);
-                      }}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Create Follow-up Task</FormLabel>
-                    <p className="text-sm text-muted-foreground">
-                      Create a task based on this interaction
-                    </p>
-                  </div>
-                </FormItem>
-              )}
-            />
+            <div className="border rounded-lg p-4 space-y-4">
+              <FormField
+                control={form.control}
+                name="createTask"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked);
+                          setShowTaskFields(!!checked);
+                        }}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Create Follow-up Task</FormLabel>
+                      <FormDescription>
+                        Create a task based on this interaction
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
 
-            {showTaskFields && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="taskTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Task Title</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Follow up on..." />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="taskDueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due Date</FormLabel>
-                      <FormControl>
-                        <Input type="datetime-local" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="taskPriority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+              {showTaskFields && (
+                <div className="space-y-4 pl-7">
+                  <FormField
+                    control={form.control}
+                    name="taskTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Task Title</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
+                          <Input {...field} placeholder="Follow up on..." />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="taskDueDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Due Date</FormLabel>
+                        <FormControl>
+                          <Input type="datetime-local" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="taskPriority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Priority</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={onClose}>
