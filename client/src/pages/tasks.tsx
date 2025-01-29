@@ -3,6 +3,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import TaskList from "@/components/tasks/task-list";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -23,6 +33,8 @@ interface TaskFormData {
 
 export default function Tasks() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -69,18 +81,72 @@ export default function Tasks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       toast({ title: "Task updated successfully" });
+      setIsFormOpen(false);
+      setSelectedTask(null);
     },
   });
 
-  const handleToggleTask = (task: Task) => {
-    updateMutation.mutate({
-      id: task.id,
-      status: task.status === "completed" ? "pending" : "completed",
-    });
-  };
+  const deleteMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({ title: "Task deleted successfully" });
+      setIsDeleteDialogOpen(false);
+      setSelectedTask(null);
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...task,
+          status: task.status === "completed" ? "pending" : "completed",
+        }),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+    },
+  });
 
   const onSubmit = (data: TaskFormData) => {
-    createMutation.mutate(data);
+    if (selectedTask) {
+      updateMutation.mutate({ ...data, id: selectedTask.id });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (task: Task) => {
+    setSelectedTask(task);
+    form.reset({
+      title: task.title,
+      description: task.description || "",
+      priority: task.priority,
+      status: task.status,
+      category: task.category,
+    });
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = (task: Task) => {
+    setSelectedTask(task);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedTask) {
+      deleteMutation.mutate(selectedTask.id);
+    }
   };
 
   return (
@@ -89,7 +155,12 @@ export default function Tasks() {
         title="Tasks" 
         action={{
           label: "Add Task",
-          onClick: () => setIsFormOpen(true)
+          icon: <Plus className="h-4 w-4" />,
+          onClick: () => {
+            setSelectedTask(null);
+            form.reset();
+            setIsFormOpen(true);
+          }
         }}
       />
 
@@ -110,13 +181,18 @@ export default function Tasks() {
             ))}
           </div>
         ) : (
-          <TaskList tasks={tasks || []} onToggle={handleToggleTask} />
+          <TaskList 
+            tasks={tasks || []} 
+            onToggle={(task) => toggleMutation.mutate(task)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         )}
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
+              <DialogTitle>{selectedTask ? 'Edit' : 'Create New'} Task</DialogTitle>
             </DialogHeader>
 
             <Form {...form}>
@@ -205,12 +281,27 @@ export default function Tasks() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">Create Task</Button>
+                  <Button type="submit">{selectedTask ? 'Save' : 'Create'} Task</Button>
                 </div>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Task</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this task? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

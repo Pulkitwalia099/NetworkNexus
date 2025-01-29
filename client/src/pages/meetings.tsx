@@ -56,6 +56,20 @@ export default function Meetings() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/meetings/${id}`, {
+        method: "DELETE",
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meetings"] });
+      toast({ title: "Meeting deleted successfully" });
+      setSelectedMeeting(null);
+    },
+  });
+
   const handleSubmit = (data: Partial<Meeting>) => {
     if (selectedMeeting) {
       updateMutation.mutate({ ...data, id: selectedMeeting.id });
@@ -67,6 +81,12 @@ export default function Meetings() {
   const handleEdit = (meeting: Meeting) => {
     setSelectedMeeting(meeting);
     setIsFormOpen(true);
+  };
+
+  const handleDelete = (meeting: Meeting) => {
+    if (window.confirm("Are you sure you want to delete this meeting?")) {
+      deleteMutation.mutate(meeting.id);
+    }
   };
 
   const handleAddNew = () => {
@@ -106,6 +126,7 @@ export default function Meetings() {
                 meeting={meeting}
                 contact={getContactForMeeting(meeting)}
                 onEdit={() => handleEdit(meeting)}
+                onDelete={() => handleDelete(meeting)}
               />
             ))}
             {meetings?.length === 0 && (

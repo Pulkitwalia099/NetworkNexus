@@ -3,7 +3,7 @@ import Header from "@/components/layout/header";
 import StatsCard from "@/components/dashboard/stats-card";
 import { Card } from "@/components/ui/card";
 import TaskList from "@/components/tasks/task-list";
-import { Calendar } from "@/components/ui/calendar";
+import UpcomingMeetings from "@/components/dashboard/upcoming-meetings";
 
 export default function Dashboard() {
   const { data: contacts } = useQuery<any[]>({ queryKey: ["/api/contacts"] });
@@ -13,7 +13,7 @@ export default function Dashboard() {
   return (
     <div>
       <Header title="Dashboard" />
-      
+
       <div className="p-6">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <StatsCard
@@ -44,14 +44,7 @@ export default function Dashboard() {
             <TaskList tasks={tasks?.slice(0, 5) || []} />
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Calendar</h2>
-            <Calendar 
-              mode="single"
-              selected={new Date()}
-              className="rounded-md border"
-            />
-          </Card>
+          <UpcomingMeetings />
         </div>
       </div>
     </div>

@@ -1,17 +1,18 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Meeting, Contact } from "@db/schema";
-import { PencilIcon, Calendar, Users, MapPin } from "lucide-react";
+import { PencilIcon, Calendar, Users, MapPin, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface MeetingCardProps {
   meeting: Meeting;
   contact?: Contact;
   onEdit?: () => void;
+  onDelete?: () => void;
   onClick?: () => void;
 }
 
-export default function MeetingCard({ meeting, contact, onEdit, onClick }: MeetingCardProps) {
+export default function MeetingCard({ meeting, contact, onEdit, onDelete, onClick }: MeetingCardProps) {
   const handleCardClick = (e: React.MouseEvent) => {
     if (e.target instanceof HTMLElement && e.target.closest('button')) {
       return;
@@ -51,7 +52,7 @@ export default function MeetingCard({ meeting, contact, onEdit, onClick }: Meeti
             </p>
           )}
         </div>
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -62,6 +63,17 @@ export default function MeetingCard({ meeting, contact, onEdit, onClick }: Meeti
             className="hover:bg-background"
           >
             <PencilIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.();
+            }}
+            className="hover:bg-background text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </div>
