@@ -268,9 +268,11 @@ export function registerRoutes(app: Express): Server {
 
         // If task data is provided, create a related task
         if (task) {
+          // Ensure proper date conversion for the task
           const [createdTask] = await tx.insert(tasks)
             .values({
               ...task,
+              dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
               contactId: parseInt(req.params.id),
               createdAt: new Date(),
               updatedAt: new Date(),

@@ -30,24 +30,46 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
   const rotate = useTransform(x, [-100, 0, 100], [-5, 0, 5]);
 
   const createInteractionMutation = useMutation({
-    mutationFn: async (data: Partial<Interaction>) => {
+    mutationFn: async (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
       const response = await fetch(`/api/contacts/${contact.id}/interactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          task: data.createTask ? {
+            title: data.taskTitle,
+            dueDate: data.taskDueDate,
+            priority: data.taskPriority,
+            category: 'follow-up',
+            contactId: contact.id,
+          } : undefined,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to create interaction");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: [`/api/contacts/${contact.id}/interactions`] 
       });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/contacts/${contact.id}/tasks`] 
+      });
       toast({ title: "Interaction added successfully" });
       setIsQuickFormOpen(false);
     },
+    onError: () => {
+      toast({ 
+        title: "Failed to create interaction", 
+        variant: "destructive" 
+      });
+    },
   });
 
-  const handleQuickInteraction = (data: Partial<Interaction>) => {
+  const handleQuickInteraction = (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
     createInteractionMutation.mutate(data);
   };
 
@@ -119,9 +141,9 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
               <span className="truncate">{contact.email}</span>
             </div>
           )}
-          {contact.tags && contact.tags.length > 0 && (
+          {Array.isArray(contact.tags) && contact.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {(contact.tags as string[]).slice(0, 3).map((tag) => (
+              {contact.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/5 text-primary/70 border border-primary/10"
@@ -129,9 +151,9 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
                   {tag}
                 </span>
               ))}
-              {(contact.tags as string[]).length > 3 && (
+              {contact.tags.length > 3 && (
                 <span className="text-xs text-muted-foreground/50">
-                  +{(contact.tags as string[]).length - 3}
+                  +{contact.tags.length - 3}
                 </span>
               )}
             </div>
