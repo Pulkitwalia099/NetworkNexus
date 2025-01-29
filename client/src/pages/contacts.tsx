@@ -33,18 +33,14 @@ export default function Contacts() {
   const { data: contacts, isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts", search],
     queryFn: async () => {
-      const searchTerm = search.trim();
-      const url = searchTerm
-        ? `/api/contacts?search=${encodeURIComponent(searchTerm)}`
+      const url = search
+        ? `/api/contacts?search=${encodeURIComponent(search)}`
         : "/api/contacts";
-      console.log("Fetching contacts with URL:", url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch contacts');
       }
-      const data = await response.json();
-      console.log("Received contacts:", data.length);
-      return data;
+      return response.json();
     },
   });
 
