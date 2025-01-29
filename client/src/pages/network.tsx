@@ -60,7 +60,7 @@ function generateNetworkData(contacts: Contact[], connections: ContactConnection
     animated: true,
     style: { 
       stroke: '#64748b',
-      strokeWidth: connection.strength,
+      strokeWidth: connection.strength || 1,
     },
     markerEnd: {
       type: MarkerType.ArrowClosed,
