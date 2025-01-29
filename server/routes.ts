@@ -235,10 +235,24 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Interactions API
-  app.get("/api/contacts/:id/interactions", async (req, res) => {
+  //This route is removed because it is replaced by the global endpoint below
+  //app.get("/api/contacts/:id/interactions", async (req, res) => {
+  //  try {
+  //    const results = await db.query.interactions.findMany({
+  //      where: eq(interactions.contactId, parseInt(req.params.id)),
+  //      orderBy: desc(interactions.date),
+  //    });
+  //    res.json(results);
+  //  } catch (error) {
+  //    console.error("Error fetching interactions:", error);
+  //    res.status(500).json({ error: "Failed to fetch interactions" });
+  //  }
+  //});
+
+  // Add new route to get all interactions
+  app.get("/api/contacts/interactions", async (_req, res) => {
     try {
       const results = await db.query.interactions.findMany({
-        where: eq(interactions.contactId, parseInt(req.params.id)),
         orderBy: desc(interactions.date),
       });
       res.json(results);
@@ -249,78 +263,80 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update the POST endpoint for interactions to handle task creation
-  app.post("/api/contacts/:id/interactions", async (req, res) => {
+  //This route is removed because it is replaced by the global endpoint below
+  //app.post("/api/contacts/:id/interactions", async (req, res) => {
+  //  try {
+  //    const { task, ...interactionData } = req.body;
+  //    const contactId = parseInt(req.params.id);
+  //
+  //    // Start a transaction to create both interaction and task
+  //    const result = await db.transaction(async (tx) => {
+  //      // Create the interaction first
+  //      const [interaction] = await tx.insert(interactions)
+  //        .values({
+  //          ...interactionData,
+  //          contactId: contactId,
+  //          date: new Date(),
+  //          createdAt: new Date(),
+  //          updatedAt: new Date(),
+  //        })
+  //        .returning();
+  //
+  //      // If task data is provided, create a related task
+  //      if (task) {
+  //        // Get contact details for tagging
+  //        const [contact] = await tx.select()
+  //          .from(contacts)
+  //          .where(eq(contacts.id, contactId))
+  //          .limit(1);
+  //
+  //        if (!contact) {
+  //          throw new Error(`Contact not found with id ${contactId}`);
+  //        }
+  //
+  //        // Initialize tags array and add contact tag
+  //        const contactTag = `contact:${contact.name}`;
+  //        const taskTags = [contactTag];
+  //
+  //        // Create task with contact tag
+  //        const [createdTask] = await tx.insert(tasks)
+  //          .values({
+  //            title: task.title,
+  //            description: task.description,
+  //            dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+  //            priority: task.priority,
+  //            category: task.category || 'follow-up',
+  //            contactId: contactId,
+  //            tags: taskTags,
+  //            createdAt: new Date(),
+  //            updatedAt: new Date(),
+  //          })
+  //          .returning();
+  //
+  //        return { interaction, task: createdTask };
+  //      }
+  //
+  //      return { interaction };
+  //    });
+  //
+  //    res.json(result);
+  //  } catch (error) {
+  //    console.error("Error creating interaction:", error);
+  //    res.status(500).json({ error: "Failed to create interaction" });
+  //  }
+  //});
+
+  // Add new route to get all contact tasks
+  app.get("/api/contacts/tasks", async (_req, res) => {
     try {
-      const { task, ...interactionData } = req.body;
-      const contactId = parseInt(req.params.id);
-
-      // Start a transaction to create both interaction and task
-      const result = await db.transaction(async (tx) => {
-        // Create the interaction first
-        const [interaction] = await tx.insert(interactions)
-          .values({
-            ...interactionData,
-            contactId: contactId,
-            date: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
-
-        // If task data is provided, create a related task
-        if (task) {
-          // Get contact details for tagging
-          const [contact] = await tx.select()
-            .from(contacts)
-            .where(eq(contacts.id, contactId))
-            .limit(1);
-
-          if (!contact) {
-            throw new Error(`Contact not found with id ${contactId}`);
-          }
-
-          // Initialize tags array and add contact tag
-          const contactTag = `contact:${contact.name}`;
-          const taskTags = [contactTag];
-
-          // Create task with contact tag
-          const [createdTask] = await tx.insert(tasks)
-            .values({
-              title: task.title,
-              description: task.description,
-              dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-              priority: task.priority,
-              category: task.category || 'follow-up',
-              contactId: contactId,
-              tags: taskTags,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .returning();
-
-          return { interaction, task: createdTask };
-        }
-
-        return { interaction };
-      });
-
-      res.json(result);
-    } catch (error) {
-      console.error("Error creating interaction:", error);
-      res.status(500).json({ error: "Failed to create interaction" });
-    }
-  });
-
-  // New route to get all interactions
-  app.get("/api/interactions", async (_req, res) => {
-    try {
-      const results = await db.query.interactions.findMany({
-        orderBy: desc(interactions.date),
+      const results = await db.query.tasks.findMany({
+        where: sql`contact_id IS NOT NULL`,
+        orderBy: desc(tasks.dueDate),
       });
       res.json(results);
     } catch (error) {
-      console.error("Error fetching interactions:", error);
-      res.status(500).json({ error: "Failed to fetch interactions" });
+      console.error("Error fetching contact tasks:", error);
+      res.status(500).json({ error: "Failed to fetch contact tasks" });
     }
   });
 
