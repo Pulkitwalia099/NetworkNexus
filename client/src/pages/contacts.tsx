@@ -19,6 +19,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Assuming MotionDiv is a custom component, you might need to import or define it here.  If not, replace with <motion.div>
+const MotionDiv = motion.div;
+
 export default function Contacts() {
   const [search, setSearch] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | undefined>();
@@ -219,17 +222,16 @@ export default function Contacts() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
-      {/* Mobile-optimized header */}
       <Header 
         title="Contacts" 
         action={{
-          label: "Add",
+          label: "Add Contact",
           icon: <Plus className="h-4 w-4 md:mr-2" />,
           onClick: handleAddNew,
           className: "fixed bottom-4 right-4 z-50 md:relative md:bottom-0 md:right-0 rounded-full md:rounded-md shadow-lg md:shadow-none"
         }}
         extraButtons={
-          <motion.div 
+          <MotionDiv 
             className="hidden md:flex items-center space-x-3"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -310,13 +312,12 @@ export default function Contacts() {
             >
               <Upload className="h-4 w-4" />
             </Button>
-          </motion.div>
+          </MotionDiv>
         }
       />
 
-      {/* Mobile-optimized search and content */}
       <div className="px-4 md:px-6 py-4 md:py-8 max-w-7xl mx-auto">
-        <motion.div 
+        <MotionDiv 
           className="w-full max-w-md mx-auto mb-6 md:mb-8 sticky top-0 z-10 px-2"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -331,9 +332,8 @@ export default function Contacts() {
               className="pl-10 h-12 bg-transparent border-border/50 rounded-full"
             />
           </div>
-        </motion.div>
+        </MotionDiv>
 
-        {/* Mobile action buttons */}
         <div className="md:hidden flex items-center justify-between mb-4 px-2">
           <Button
             variant="ghost"
@@ -355,16 +355,16 @@ export default function Contacts() {
           </Button>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
           {selectedTags.length > 0 && (
-            <motion.div 
+            <MotionDiv 
               className="mb-4 flex flex-wrap gap-2 px-2"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
             >
               {selectedTags.map(tag => (
-                <motion.span
+                <MotionDiv
                   key={tag}
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/5 text-primary border border-primary/10"
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -378,7 +378,7 @@ export default function Contacts() {
                   >
                     ×
                   </button>
-                </motion.span>
+                </MotionDiv>
               ))}
               {selectedTags.length > 1 && (
                 <button
@@ -388,15 +388,15 @@ export default function Contacts() {
                   Clear all
                 </button>
               )}
-            </motion.div>
+            </MotionDiv>
           )}
         </AnimatePresence>
 
         {isLoading ? (
           <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-2">
             {[...Array(6)].map((_, i) => (
-              <motion.div
-                key={i}
+              <MotionDiv
+                key={`skeleton-${i}`}
                 className="h-32 bg-accent/20 animate-pulse rounded-xl backdrop-blur-sm"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -405,24 +405,20 @@ export default function Contacts() {
             ))}
           </div>
         ) : (
-          <motion.div 
+          <MotionDiv 
             className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <AnimatePresence>
-              {filteredAndGroupedContacts.map((contact, index) => (
-                <motion.div
-                  key={contact.id}
+            <AnimatePresence mode="popLayout">
+              {filteredAndGroupedContacts.map((contact) => (
+                <MotionDiv
+                  key={`contact-${contact.id}`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{ 
-                    duration: 0.3, 
-                    delay: index * 0.05,
-                    ease: [0.23, 1, 0.32, 1]
-                  }}
+                  transition={{ duration: 0.3 }}
                   layoutId={`contact-${contact.id}`}
                 >
                   <ContactCard
@@ -430,13 +426,13 @@ export default function Contacts() {
                     onClick={() => handleViewContact(contact)}
                     onEdit={() => handleEdit(contact)}
                   />
-                </motion.div>
+                </MotionDiv>
               ))}
             </AnimatePresence>
-          </motion.div>
+          </MotionDiv>
         )}
 
-        {/* Keep existing dialogs and forms */}
+
         <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
           <DialogContent>
             <DialogHeader>
@@ -451,6 +447,7 @@ export default function Contacts() {
                 accept=".json,.csv"
                 onChange={handleImport}
                 className="cursor-pointer"
+                aria-label="Choose file to import"
               />
               <p className="text-sm text-muted-foreground">
                 Supported formats: JSON, CSV
@@ -477,7 +474,7 @@ export default function Contacts() {
         <GroupManagementDialog
           open={isGroupManagementOpen}
           onOpenChange={setIsGroupManagementOpen}
-          existingGroups={allGroups}
+          groups={allGroups}
         />
       </div>
     </div>

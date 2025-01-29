@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import QuickInteractionForm from "./quick-interaction-form";
-import { motion, useMotionValue, useTransform, PanInfo } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface ContactCardProps {
   contact: Contact;
@@ -16,19 +16,24 @@ interface ContactCardProps {
   onEdit?: () => void;
 }
 
-const MotionCard = motion(Card);
+// Create reusable motion components
+const MotionCard = motion.create(Card);
+const MotionDiv = motion.create("div");
 
 export default function ContactCard({ contact, onClick, onEdit }: ContactCardProps) {
   const [isQuickFormOpen, setIsQuickFormOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Motion values for swipe gesture
-  const x = useMotionValue(0);
-  const scale = useTransform(x, [-100, 0, 100], [0.95, 1, 0.95]);
-  const opacity = useTransform(x, [-100, 0, 100], [0.5, 1, 0.5]);
-  const rotate = useTransform(x, [-100, 0, 100], [-5, 0, 5]);
+  // Motion config
+  const cardVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
+    hover: { scale: 1.02 },
+  };
 
+  // Rest of the component implementation remains the same, just update JSX...
   const createInteractionMutation = useMutation({
     mutationFn: async (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
       const response = await fetch(`/api/contacts/${contact.id}/interactions`, {
@@ -42,7 +47,7 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
             priority: data.taskPriority,
             category: 'follow-up',
             contactId: contact.id,
-            tags: [] as string[], // Explicitly type and initialize empty array
+            tags: [] as string[],
           } : undefined,
         }),
       });
@@ -53,39 +58,18 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/contacts/${contact.id}/interactions`] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/contacts/${contact.id}/tasks`] 
-      });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contact.id}/interactions`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contact.id}/tasks`] });
       toast({ title: "Interaction added successfully" });
       setIsQuickFormOpen(false);
     },
     onError: () => {
-      toast({ 
-        title: "Failed to create interaction", 
-        variant: "destructive" 
-      });
+      toast({ title: "Failed to create interaction", variant: "destructive" });
     },
   });
 
   const handleQuickInteraction = (data: Partial<Interaction> & { createTask?: boolean; taskTitle?: string; taskDueDate?: string; taskPriority?: string }) => {
     createInteractionMutation.mutate(data);
-  };
-
-  const handleDragEnd = (_: Event, info: PanInfo) => {
-    const threshold = 50;
-    if (Math.abs(info.offset.x) > threshold) {
-      if (info.offset.x > 0) {
-        // Swipe right - View details
-        onClick?.();
-      } else {
-        // Swipe left - Edit
-        onEdit?.();
-      }
-    }
-    x.set(0);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -100,20 +84,16 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
     <MotionCard 
       className="p-4 md:p-6 hover:bg-accent/5 cursor-pointer relative group backdrop-blur-sm bg-background/50 border-border/50 rounded-xl transition-colors overflow-hidden touch-pan-y"
       onClick={handleCardClick}
-      style={{ x, scale, opacity, rotate }}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.1}
-      onDragEnd={handleDragEnd}
-      whileTap={{ cursor: "grabbing" }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+      variants={cardVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      whileHover="hover"
       transition={{ duration: 0.3 }}
     >
       <div className="flex items-start space-x-4">
         <Avatar className="h-12 w-12 ring-2 ring-primary/10 ring-offset-2 ring-offset-background transition-all duration-300 group-hover:ring-primary/20">
-          <AvatarImage src={contact.avatar || undefined} />
+          <AvatarImage src={contact.avatar || undefined} alt={`${contact.name}'s avatar`} />
           <AvatarFallback className="bg-primary/5 text-primary font-medium">
             {contact.name.split(' ').map(n => n[0]).join('')}
           </AvatarFallback>
@@ -160,8 +140,8 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
             </div>
           )}
         </div>
-        <motion.div 
-          className="hidden md:flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        <MotionDiv 
+          className="hidden md:flex space-x-1"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -174,6 +154,7 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
               onEdit?.();
             }}
             className="h-8 w-8 hover:bg-primary/5 transition-colors"
+            aria-label="Edit contact"
           >
             <PencilIcon className="h-4 w-4" />
           </Button>
@@ -184,6 +165,7 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
                 size="icon"
                 className="h-8 w-8 hover:bg-primary/5 transition-colors"
                 onClick={(e) => e.stopPropagation()}
+                aria-label="Quick interaction"
               >
                 <MessageSquare className="h-4 w-4" />
               </Button>
@@ -203,18 +185,8 @@ export default function ContactCard({ contact, onClick, onEdit }: ContactCardPro
               </div>
             </PopoverContent>
           </Popover>
-        </motion.div>
+        </MotionDiv>
       </div>
-
-      {/* Mobile swipe indicators */}
-      <motion.div 
-        className="absolute inset-y-0 left-0 w-1 bg-destructive md:hidden"
-        style={{ opacity: useTransform(x, [-100, 0], [1, 0]) }}
-      />
-      <motion.div 
-        className="absolute inset-y-0 right-0 w-1 bg-primary md:hidden"
-        style={{ opacity: useTransform(x, [0, 100], [0, 1]) }}
-      />
     </MotionCard>
   );
 }
