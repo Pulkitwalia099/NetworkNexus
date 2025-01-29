@@ -7,7 +7,7 @@ import GroupManagementDialog from "@/components/contacts/group-management-dialog
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags, Users2 } from "lucide-react";
+import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags, Users2, Plus } from "lucide-react";
 import { Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
 import ContactDetail from "@/components/contacts/contact-detail";
@@ -219,15 +219,18 @@ export default function Contacts() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
+      {/* Mobile-optimized header */}
       <Header 
         title="Contacts" 
         action={{
-          label: "Add Contact",
-          onClick: handleAddNew
+          label: "Add",
+          icon: <Plus className="h-4 w-4 md:mr-2" />,
+          onClick: handleAddNew,
+          className: "fixed bottom-4 right-4 z-50 md:relative md:bottom-0 md:right-0 rounded-full md:rounded-md shadow-lg md:shadow-none"
         }}
         extraButtons={
           <motion.div 
-            className="flex items-center space-x-3"
+            className="hidden md:flex items-center space-x-3"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
@@ -311,26 +314,86 @@ export default function Contacts() {
         }
       />
 
-      <div className="px-6 py-8 max-w-7xl mx-auto">
+      {/* Mobile-optimized search and content */}
+      <div className="px-4 md:px-6 py-4 md:py-8 max-w-7xl mx-auto">
         <motion.div 
-          className="w-full max-w-md mx-auto mb-8"
+          className="w-full max-w-md mx-auto mb-6 md:mb-8 sticky top-0 z-10 px-2"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <div className="relative bg-background/95 backdrop-blur-sm rounded-full shadow-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search contacts..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-12 bg-background/50 backdrop-blur-sm border-border/50 rounded-full"
+              className="pl-10 h-12 bg-transparent border-border/50 rounded-full"
             />
           </div>
         </motion.div>
 
+        {/* Mobile action buttons */}
+        <div className="md:hidden flex items-center justify-between mb-4 px-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsGroupManagementOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Users2 className="h-4 w-4" />
+            Groups
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {}}
+            className="flex items-center gap-2"
+          >
+            <Tags className="h-4 w-4" />
+            Tags {selectedTags.length > 0 && `(${selectedTags.length})`}
+          </Button>
+        </div>
+
+        <AnimatePresence>
+          {selectedTags.length > 0 && (
+            <motion.div 
+              className="mb-4 flex flex-wrap gap-2 px-2"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              {selectedTags.map(tag => (
+                <motion.span
+                  key={tag}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/5 text-primary border border-primary/10"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                >
+                  {tag}
+                  <button
+                    onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                    className="ml-1 hover:text-destructive transition-colors"
+                  >
+                    ×
+                  </button>
+                </motion.span>
+              ))}
+              {selectedTags.length > 1 && (
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear all
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-2">
             {[...Array(6)].map((_, i) => (
               <motion.div
                 key={i}
@@ -342,88 +405,38 @@ export default function Contacts() {
             ))}
           </div>
         ) : (
-          <>
+          <motion.div 
+            className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             <AnimatePresence>
-              {selectedTags.length > 0 && (
-                <motion.div 
-                  className="mb-6 flex flex-wrap gap-2"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+              {filteredAndGroupedContacts.map((contact, index) => (
+                <motion.div
+                  key={contact.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ 
+                    duration: 0.3, 
+                    delay: index * 0.05,
+                    ease: [0.23, 1, 0.32, 1]
+                  }}
+                  layoutId={`contact-${contact.id}`}
                 >
-                  {selectedTags.map(tag => (
-                    <motion.span
-                      key={tag}
-                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-primary/5 text-primary border border-primary/10"
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                    >
-                      {tag}
-                      <button
-                        onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
-                        className="ml-1 hover:text-destructive transition-colors"
-                      >
-                        ×
-                      </button>
-                    </motion.span>
-                  ))}
-                  {selectedTags.length > 1 && (
-                    <button
-                      onClick={() => setSelectedTags([])}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Clear all
-                    </button>
-                  )}
+                  <ContactCard
+                    contact={contact}
+                    onClick={() => handleViewContact(contact)}
+                    onEdit={() => handleEdit(contact)}
+                  />
                 </motion.div>
-              )}
+              ))}
             </AnimatePresence>
-
-            <motion.div 
-              className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <AnimatePresence>
-                {filteredAndGroupedContacts.map((contact, index) => (
-                  <motion.div
-                    key={contact.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ 
-                      duration: 0.3, 
-                      delay: index * 0.05,
-                      ease: [0.23, 1, 0.32, 1]
-                    }}
-                  >
-                    <ContactCard
-                      contact={contact}
-                      onClick={() => handleViewContact(contact)}
-                      onEdit={() => handleEdit(contact)}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-
-            {filteredAndGroupedContacts.length === 0 && (
-              <motion.div 
-                className="text-center mt-12"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <p className="text-muted-foreground">
-                  No contacts found {selectedTags.length > 0 && "with selected tags"}
-                </p>
-              </motion.div>
-            )}
-          </>
+          </motion.div>
         )}
 
+        {/* Keep existing dialogs and forms */}
         <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
           <DialogContent>
             <DialogHeader>
