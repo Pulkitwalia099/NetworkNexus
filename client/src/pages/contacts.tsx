@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
-import ContactCard from "@/components/contacts/contact-card";
+import ContactList from "@/components/contacts/contact-list";
 import ContactForm from "@/components/contacts/contact-form";
+import QuickInteractionForm from "@/components/contacts/quick-interaction-form";
 import GroupManagementDialog from "@/components/contacts/group-management-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags, Users2, Plus } from "lucide-react";
 import { Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -17,9 +18,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
-// Assuming MotionDiv is a custom component, you might need to import or define it here.  If not, replace with <motion.div>
 const MotionDiv = motion.div;
 
 export default function Contacts() {
@@ -28,6 +28,7 @@ export default function Contacts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isQuickInteractionOpen, setIsQuickInteractionOpen] = useState(false);
   const [isGroupManagementOpen, setIsGroupManagementOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const queryClient = useQueryClient();
@@ -35,16 +36,16 @@ export default function Contacts() {
 
   const { data: contacts, isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts", search],
-    queryFn: async () => {
-      const url = search
-        ? `/api/contacts?search=${encodeURIComponent(search)}`
-        : "/api/contacts";
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch contacts');
-      }
-      return response.json();
-    },
+  });
+
+  const { data: interactions } = useQuery({
+    queryKey: ["/api/contacts/interactions"],
+    enabled: !!contacts?.length,
+  });
+
+  const { data: tasks } = useQuery({
+    queryKey: ["/api/contacts/tasks"],
+    enabled: !!contacts?.length,
   });
 
   // Extract all unique groups from contacts
@@ -67,8 +68,8 @@ export default function Contacts() {
     return Array.from(tagSet).sort();
   }, [contacts]);
 
-  // Filter and group contacts based on search and selected tags
-  const filteredAndGroupedContacts = useMemo(() => {
+  // Filter contacts based on search and selected tags
+  const filteredContacts = useMemo(() => {
     if (!contacts) return [];
 
     return contacts.filter(contact => {
@@ -83,6 +84,69 @@ export default function Contacts() {
       return matchesSearch && matchesTags;
     });
   }, [contacts, search, selectedTags]);
+
+  // Group interactions and tasks by contact
+  const groupedInteractions = useMemo(() => {
+    const grouped: Record<number, any[]> = {};
+    if (interactions) {
+      interactions.forEach(interaction => {
+        if (!grouped[interaction.contactId]) {
+          grouped[interaction.contactId] = [];
+        }
+        grouped[interaction.contactId].push(interaction);
+      });
+    }
+    return grouped;
+  }, [interactions]);
+
+  const groupedTasks = useMemo(() => {
+    const grouped: Record<number, any[]> = {};
+    if (tasks) {
+      tasks.forEach(task => {
+        if (!grouped[task.contactId]) {
+          grouped[task.contactId] = [];
+        }
+        grouped[task.contactId].push(task);
+      });
+    }
+    return grouped;
+  }, [tasks]);
+
+  const handleEdit = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsFormOpen(true);
+  };
+
+  const handleQuickInteraction = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsQuickInteractionOpen(true);
+  };
+
+  const handleViewContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsDetailOpen(true);
+  };
+
+  const handleQuickInteractionSubmit = async (data: any) => {
+    try {
+      // Implement your API call to submit the quick interaction here
+      const response = await fetch(`/api/contacts/${selectedContact?.id}/interactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit quick interaction");
+      }
+      
+      toast({ title: "Quick interaction submitted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts/interactions"] });
+
+    } catch (error) {
+      toast({ title: "Failed to submit quick interaction", variant: "destructive" });
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (contact: Partial<Contact>) => {
@@ -147,26 +211,6 @@ export default function Contacts() {
     }
   };
 
-  const handleEdit = (contact: Contact) => {
-    setSelectedContact(contact);
-    setIsFormOpen(true);
-  };
-
-  const handleAddNew = () => {
-    setSelectedContact(undefined);
-    setIsFormOpen(true);
-  };
-
-  const handleViewContact = (contact: Contact) => {
-    setSelectedContact(contact);
-    setIsDetailOpen(true);
-  };
-
-  const handleDelete = () => {
-    if (selectedContact) {
-      deleteMutation.mutate(selectedContact.id);
-    }
-  };
 
   const handleExport = async (format: 'json' | 'csv') => {
     try {
@@ -227,7 +271,10 @@ export default function Contacts() {
         action={{
           label: "Add Contact",
           icon: <Plus className="h-4 w-4 md:mr-2" />,
-          onClick: handleAddNew,
+          onClick: () => {
+            setSelectedContact(undefined);
+            setIsFormOpen(true);
+          },
           className: "fixed bottom-4 right-4 z-50 md:relative md:bottom-0 md:right-0 rounded-full md:rounded-md shadow-lg md:shadow-none"
         }}
         extraButtons={
@@ -393,11 +440,11 @@ export default function Contacts() {
         </AnimatePresence>
 
         {isLoading ? (
-          <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-2">
+          <div className="space-y-2">
             {[...Array(6)].map((_, i) => (
               <MotionDiv
                 key={`skeleton-${i}`}
-                className="h-32 bg-accent/20 animate-pulse rounded-xl backdrop-blur-sm"
+                className="h-16 bg-accent/20 animate-pulse rounded-lg"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.1 }}
@@ -405,63 +452,22 @@ export default function Contacts() {
             ))}
           </div>
         ) : (
-          <MotionDiv 
-            className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <AnimatePresence mode="popLayout">
-              {filteredAndGroupedContacts.map((contact) => (
-                <MotionDiv
-                  key={`contact-${contact.id}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                  layoutId={`contact-${contact.id}`}
-                >
-                  <ContactCard
-                    contact={contact}
-                    onClick={() => handleViewContact(contact)}
-                    onEdit={() => handleEdit(contact)}
-                  />
-                </MotionDiv>
-              ))}
-            </AnimatePresence>
-          </MotionDiv>
+          <ContactList
+            contacts={filteredContacts}
+            interactions={groupedInteractions}
+            tasks={groupedTasks}
+            onEdit={handleEdit}
+            onQuickInteraction={handleQuickInteraction}
+            onViewDetails={handleViewContact}
+          />
         )}
-
-
-        <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Import Contacts</DialogTitle>
-              <DialogDescription>
-                Upload a JSON or CSV file containing contact information.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                type="file"
-                accept=".json,.csv"
-                onChange={handleImport}
-                className="cursor-pointer"
-                aria-label="Choose file to import"
-              />
-              <p className="text-sm text-muted-foreground">
-                Supported formats: JSON, CSV
-              </p>
-            </div>
-          </DialogContent>
-        </Dialog>
 
         <ContactForm
           contact={selectedContact}
           open={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           onSubmit={handleSubmit}
-          onDelete={selectedContact ? handleDelete : undefined}
+          onDelete={selectedContact ? deleteMutation.mutate : undefined}
         />
 
         {selectedContact && (
@@ -471,10 +477,24 @@ export default function Contacts() {
             onClose={() => setIsDetailOpen(false)}
           />
         )}
+
+        {selectedContact && (
+          <Dialog open={isQuickInteractionOpen} onOpenChange={setIsQuickInteractionOpen}>
+            <DialogContent>
+              <QuickInteractionForm
+                onSubmit={(data) => {
+                  handleQuickInteractionSubmit(data);
+                  setIsQuickInteractionOpen(false);
+                }}
+                onCancel={() => setIsQuickInteractionOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+
         <GroupManagementDialog
           open={isGroupManagementOpen}
           onOpenChange={setIsGroupManagementOpen}
-          groups={allGroups}
         />
       </div>
     </div>
