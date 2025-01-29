@@ -16,6 +16,18 @@ export const contacts = pgTable("contacts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const interactions = pgTable("interactions", {
+  id: serial("id").primaryKey(),
+  contactId: integer("contact_id").references(() => contacts.id).notNull(),
+  type: text("type").notNull(), // e.g., 'email', 'call', 'meeting', 'note'
+  title: text("title").notNull(),
+  description: text("description"),
+  date: timestamp("date").notNull().defaultNow(),
+  outcome: text("outcome"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const meetings = pgTable("meetings", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -44,7 +56,8 @@ export const tasks = pgTable("tasks", {
 // Relations
 export const contactRelations = relations(contacts, ({ many }) => ({
   meetings: many(meetings),
-  tasks: many(tasks)
+  tasks: many(tasks),
+  interactions: many(interactions)
 }));
 
 export const meetingRelations = relations(meetings, ({ one }) => ({
@@ -61,7 +74,15 @@ export const taskRelations = relations(tasks, ({ one }) => ({
   })
 }));
 
+export const interactionRelations = relations(interactions, ({ one }) => ({
+  contact: one(contacts, {
+    fields: [interactions.contactId],
+    references: [contacts.id]
+  })
+}));
+
 // Schemas
 export type Contact = typeof contacts.$inferSelect;
 export type Meeting = typeof meetings.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
+export type Interaction = typeof interactions.$inferSelect;

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { contacts, meetings, tasks } from "@db/schema";
+import { contacts, meetings, tasks, interactions } from "@db/schema";
 import { eq, like, desc } from "drizzle-orm";
 import { createObjectCsvStringifier } from "csv-writer";
 import { parse } from "csv-parse/sync";
@@ -194,6 +194,37 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error updating task:", error);
       res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  // Interactions API
+  app.get("/api/contacts/:id/interactions", async (req, res) => {
+    try {
+      const results = await db.query.interactions.findMany({
+        where: eq(interactions.contactId, parseInt(req.params.id)),
+        orderBy: desc(interactions.date),
+      });
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching interactions:", error);
+      res.status(500).json({ error: "Failed to fetch interactions" });
+    }
+  });
+
+  app.post("/api/contacts/:id/interactions", async (req, res) => {
+    try {
+      const interaction = await db.insert(interactions)
+        .values({
+          ...req.body,
+          contactId: parseInt(req.params.id),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      res.json(interaction[0]);
+    } catch (error) {
+      console.error("Error creating interaction:", error);
+      res.status(500).json({ error: "Failed to create interaction" });
     }
   });
 

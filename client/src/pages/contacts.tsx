@@ -9,12 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Search, Download, Upload, FileJson, FileSpreadsheet } from "lucide-react";
 import { Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
+import ContactDetail from "@/components/contacts/contact-detail";
 
 export default function Contacts() {
   const [search, setSearch] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | undefined>();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -143,6 +145,11 @@ export default function Contacts() {
     reader.readAsText(file);
   };
 
+  const handleViewContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsDetailOpen(true);
+  };
+
   return (
     <div>
       <Header 
@@ -209,7 +216,7 @@ export default function Contacts() {
               <ContactCard
                 key={contact.id}
                 contact={contact}
-                onClick={() => handleEdit(contact)}
+                onClick={() => handleViewContact(contact)}
               />
             ))}
           </div>
@@ -237,12 +244,20 @@ export default function Contacts() {
           </DialogContent>
         </Dialog>
 
-      <ContactForm
-        contact={selectedContact}
-        open={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleSubmit}
-      />
+        <ContactForm
+          contact={selectedContact}
+          open={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSubmit={handleSubmit}
+        />
+
+        {selectedContact && (
+          <ContactDetail
+            contact={selectedContact}
+            open={isDetailOpen}
+            onClose={() => setIsDetailOpen(false)}
+          />
+        )}
       </div>
     </div>
   );
