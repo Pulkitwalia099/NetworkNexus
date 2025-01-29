@@ -10,6 +10,16 @@ import { BsTwitterX } from "react-icons/bs";
 import InteractionList from "./interaction-list";
 import InteractionForm from "./interaction-form";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ContactDetailProps {
   contact: Contact;
@@ -19,6 +29,8 @@ interface ContactDetailProps {
 
 export default function ContactDetail({ contact, open, onClose }: ContactDetailProps) {
   const [isInteractionFormOpen, setIsInteractionFormOpen] = useState(false);
+  const [selectedInteraction, setSelectedInteraction] = useState<Interaction>();
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -27,7 +39,7 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     enabled: open,
   });
 
-  const sortedInteractions = interactions?.sort((a, b) => 
+  const sortedInteractions = interactions?.sort((a, b) =>
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
@@ -71,6 +83,85 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
       });
     },
   });
+
+  const updateInteractionMutation = useMutation({
+    mutationFn: async (data: Partial<Interaction>) => {
+      const response = await fetch(`/api/contacts/${contact.id}/interactions/${data.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update interaction");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contact.id}/interactions`] });
+      toast({ title: "Interaction updated successfully" });
+      setIsInteractionFormOpen(false);
+      setSelectedInteraction(undefined);
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to update interaction", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const deleteInteractionMutation = useMutation({
+    mutationFn: async (interactionId: number) => {
+      const response = await fetch(`/api/contacts/${contact.id}/interactions/${interactionId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete interaction");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/contacts/${contact.id}/interactions`] });
+      toast({ title: "Interaction deleted successfully" });
+      setSelectedInteraction(undefined);
+      setIsDeleteAlertOpen(false);
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to delete interaction", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleEdit = (interaction: Interaction) => {
+    setSelectedInteraction(interaction);
+    setIsInteractionFormOpen(true);
+  };
+
+  const handleDelete = (interaction: Interaction) => {
+    setSelectedInteraction(interaction);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (selectedInteraction) {
+      deleteInteractionMutation.mutate(selectedInteraction.id);
+    }
+  };
+
+  const handleInteractionSubmit = (data: any) => {
+    if (selectedInteraction) {
+      updateInteractionMutation.mutate({
+        ...data,
+        id: selectedInteraction.id,
+      });
+    } else {
+      createInteractionMutation.mutate(data);
+    }
+  };
 
   const handleAddInteraction = (data: any) => {
     createInteractionMutation.mutate(data);
@@ -124,7 +215,6 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Contact Info Section */}
           <div className="flex items-start justify-between">
             <div className="space-y-4">
               <motion.h2 
@@ -154,7 +244,6 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
                   )}
                 </AnimatePresence>
 
-                {/* Social Media Links */}
                 {(contact.linkedinUrl || contact.twitterHandle || contact.githubUsername) && (
                   <motion.div 
                     className="pt-2 space-y-2 border-t"
@@ -188,7 +277,6 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
                   </motion.div>
                 )}
 
-                {/* Tags */}
                 {tags.length > 0 && (
                   <motion.div 
                     className="flex items-center text-sm text-muted-foreground space-x-2"
@@ -228,7 +316,6 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
             </motion.div>
           </div>
 
-          {/* Timeline Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -237,7 +324,11 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
             <h3 className="text-lg font-semibold mb-4">Interaction Timeline</h3>
             <AnimatePresence>
               {sortedInteractions?.length ? (
-                <InteractionList interactions={sortedInteractions} />
+                <InteractionList 
+                  interactions={sortedInteractions}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
               ) : (
                 <motion.p 
                   className="text-sm text-muted-foreground"
@@ -253,10 +344,30 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
         </motion.div>
 
         <InteractionForm
+          interaction={selectedInteraction}
           open={isInteractionFormOpen}
-          onClose={() => setIsInteractionFormOpen(false)}
-          onSubmit={handleAddInteraction}
+          onClose={() => {
+            setIsInteractionFormOpen(false);
+            setSelectedInteraction(undefined);
+          }}
+          onSubmit={handleInteractionSubmit}
+          mode={selectedInteraction ? 'edit' : 'create'}
         />
+
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Interaction</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this interaction? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );
