@@ -265,6 +265,26 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/contacts/groups/update", async (req, res) => {
+    try {
+      const { oldGroup, newGroup } = req.body;
+
+      // Update all contacts that have the old group name
+      const updatedContacts = await db.update(contacts)
+        .set({ 
+          group: newGroup,
+          updatedAt: new Date()
+        })
+        .where(eq(contacts.group, oldGroup))
+        .returning();
+
+      res.json(updatedContacts);
+    } catch (error) {
+      console.error("Error updating contact groups:", error);
+      res.status(500).json({ error: "Failed to update contact groups" });
+    }
+  });
+
   // Add this new endpoint just before the existing contact connections endpoints
   app.get("/api/connections", async (_req, res) => {
     try {

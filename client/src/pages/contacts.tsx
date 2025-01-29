@@ -3,10 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import ContactCard from "@/components/contacts/contact-card";
 import ContactForm from "@/components/contacts/contact-form";
+import GroupManagementDialog from "@/components/contacts/group-management-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags } from "lucide-react";
+import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags, Users2 } from "lucide-react";
 import { Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
 import ContactDetail from "@/components/contacts/contact-detail";
@@ -23,6 +24,7 @@ export default function Contacts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isGroupManagementOpen, setIsGroupManagementOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -37,6 +39,16 @@ export default function Contacts() {
       return response.json();
     },
   });
+
+  // Extract all unique groups from contacts
+  const allGroups = useMemo(() => {
+    if (!contacts) return [];
+    const groupSet = new Set<string>();
+    contacts.forEach(contact => {
+      if (contact.group) groupSet.add(contact.group);
+    });
+    return Array.from(groupSet).sort();
+  }, [contacts]);
 
   // Extract all unique tags from contacts
   const allTags = useMemo(() => {
@@ -182,6 +194,14 @@ export default function Contacts() {
         }}
         extraButtons={
           <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsGroupManagementOpen(true)}
+              title="Manage Groups"
+            >
+              <Users2 className="h-4 w-4" />
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -352,6 +372,11 @@ export default function Contacts() {
             onClose={() => setIsDetailOpen(false)}
           />
         )}
+        <GroupManagementDialog
+          open={isGroupManagementOpen}
+          onOpenChange={setIsGroupManagementOpen}
+          existingGroups={allGroups}
+        />
       </div>
     </div>
   );
