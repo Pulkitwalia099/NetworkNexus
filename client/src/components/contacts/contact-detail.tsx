@@ -4,7 +4,9 @@ import { Contact, Interaction } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Mail, Phone, Building2, Briefcase, Users, Tag } from "lucide-react";
+import { MessageSquare, Mail, Phone, Building2, Briefcase, Users, Tag, Link } from "lucide-react";
+import { SiLinkedin, SiGithub } from "react-icons/si";
+import { BsTwitterX } from "react-icons/bs";
 import InteractionList from "./interaction-list";
 import InteractionForm from "./interaction-form";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,11 +49,11 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
     },
   });
 
-  const handleAddInteraction = (data: any) => {
+  const handleAddInteraction = (data: Partial<Interaction>) => {
     createInteractionMutation.mutate(data);
   };
 
-  const ContactInfoItem = ({ icon: Icon, children }: { icon: any; children: React.ReactNode }) => (
+  const ContactInfoItem = ({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) => (
     <motion.div 
       className="flex items-center text-sm text-muted-foreground space-x-2"
       initial={{ opacity: 0, x: -20 }}
@@ -62,6 +64,33 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
       <span>{children}</span>
     </motion.div>
   );
+
+  const SocialLink = ({ 
+    url, 
+    icon: Icon, 
+    username, 
+    platform 
+  }: { 
+    url: string; 
+    icon: React.ElementType; 
+    username: string;
+    platform: string;
+  }) => (
+    <motion.a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{username}</span>
+    </motion.a>
+  );
+
+  const tags = Array.isArray(contact.tags) ? contact.tags : [];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -101,7 +130,43 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
                     <ContactInfoItem icon={Users}>{contact.group}</ContactInfoItem>
                   )}
                 </AnimatePresence>
-                {contact.tags && contact.tags.length > 0 && (
+
+                {/* Social Media Links */}
+                {(contact.linkedinUrl || contact.twitterHandle || contact.githubUsername) && (
+                  <motion.div 
+                    className="pt-2 space-y-2 border-t"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    {contact.linkedinUrl && (
+                      <SocialLink
+                        url={contact.linkedinUrl}
+                        icon={SiLinkedin}
+                        username={contact.linkedinUrl.split('/').pop() || 'LinkedIn Profile'}
+                        platform="LinkedIn"
+                      />
+                    )}
+                    {contact.twitterHandle && (
+                      <SocialLink
+                        url={`https://twitter.com/${contact.twitterHandle.replace('@', '')}`}
+                        icon={BsTwitterX}
+                        username={contact.twitterHandle}
+                        platform="Twitter"
+                      />
+                    )}
+                    {contact.githubUsername && (
+                      <SocialLink
+                        url={`https://github.com/${contact.githubUsername}`}
+                        icon={SiGithub}
+                        username={contact.githubUsername}
+                        platform="GitHub"
+                      />
+                    )}
+                  </motion.div>
+                )}
+
+                {/* Tags */}
+                {tags.length > 0 && (
                   <motion.div 
                     className="flex items-center text-sm text-muted-foreground space-x-2"
                     initial={{ opacity: 0, y: 10 }}
@@ -109,7 +174,7 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
                   >
                     <Tag className="h-4 w-4" />
                     <div className="flex flex-wrap gap-1">
-                      {(contact.tags as string[]).map((tag, index) => (
+                      {tags.map((tag, index) => (
                         <motion.span
                           key={tag}
                           className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs"
