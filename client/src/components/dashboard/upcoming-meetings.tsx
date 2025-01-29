@@ -41,19 +41,18 @@ function UpcomingMeetingItem({ meeting, contact }: UpcomingMeetingItemProps) {
   );
 }
 
-export default function UpcomingMeetings() {
-  const { data: meetings } = useQuery<Meeting[]>({
-    queryKey: ["/api/meetings"],
-  });
+interface UpcomingMeetingsProps {
+  meetings?: Meeting[];
+}
 
+export default function UpcomingMeetings({ meetings = [] }: UpcomingMeetingsProps) {
   const { data: contacts } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
 
   const upcomingMeetings = meetings
-    ?.filter(meeting => isAfter(new Date(meeting.date), new Date()))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(0, 5);
+    .filter(meeting => isAfter(new Date(meeting.date), new Date()))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const getContactForMeeting = (meeting: Meeting) => {
     return contacts?.find(contact => contact.id === meeting.contactId);
