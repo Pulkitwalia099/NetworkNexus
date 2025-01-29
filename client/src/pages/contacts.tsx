@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Header from "@/components/layout/header";
 import ContactCard from "@/components/contacts/contact-card";
@@ -6,10 +6,16 @@ import ContactForm from "@/components/contacts/contact-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Search, Download, Upload, FileJson, FileSpreadsheet } from "lucide-react";
+import { Search, Download, Upload, FileJson, FileSpreadsheet, Tags } from "lucide-react";
 import { Contact } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
 import ContactDetail from "@/components/contacts/contact-detail";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Contacts() {
   const [search, setSearch] = useState("");
@@ -17,6 +23,7 @@ export default function Contacts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -30,6 +37,33 @@ export default function Contacts() {
       return response.json();
     },
   });
+
+  // Extract all unique tags from contacts
+  const allTags = useMemo(() => {
+    if (!contacts) return [];
+    const tagSet = new Set<string>();
+    contacts.forEach(contact => {
+      (contact.tags as string[])?.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [contacts]);
+
+  // Filter and group contacts based on search and selected tags
+  const filteredAndGroupedContacts = useMemo(() => {
+    if (!contacts) return [];
+
+    return contacts.filter(contact => {
+      const matchesSearch = !search || 
+        contact.name.toLowerCase().includes(search.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(search.toLowerCase()) ||
+        contact.company?.toLowerCase().includes(search.toLowerCase());
+
+      const matchesTags = selectedTags.length === 0 || 
+        selectedTags.every(tag => (contact.tags as string[])?.includes(tag));
+
+      return matchesSearch && matchesTags;
+    });
+  }, [contacts, search, selectedTags]);
 
   const createMutation = useMutation({
     mutationFn: async (contact: Partial<Contact>) => {
@@ -160,6 +194,44 @@ export default function Contacts() {
         }}
         extraButtons={
           <div className="flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="relative"
+                  title="Filter by tags"
+                >
+                  <Tags className="h-4 w-4" />
+                  {selectedTags.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center">
+                      {selectedTags.length}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {allTags.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-2">No tags available</p>
+                ) : (
+                  allTags.map(tag => (
+                    <DropdownMenuCheckboxItem
+                      key={tag}
+                      checked={selectedTags.includes(tag)}
+                      onCheckedChange={(checked) => {
+                        setSelectedTags(prev => 
+                          checked 
+                            ? [...prev, tag]
+                            : prev.filter(t => t !== tag)
+                        );
+                      }}
+                    >
+                      {tag}
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="outline"
               size="icon"
@@ -211,15 +283,48 @@ export default function Contacts() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {contacts?.map((contact) => (
-              <ContactCard
-                key={contact.id}
-                contact={contact}
-                onClick={() => handleViewContact(contact)}
-              />
-            ))}
-          </div>
+          <>
+            {selectedTags.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {selectedTags.map(tag => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary"
+                  >
+                    {tag}
+                    <button
+                      onClick={() => setSelectedTags(prev => prev.filter(t => t !== tag))}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+                {selectedTags.length > 1 && (
+                  <button
+                    onClick={() => setSelectedTags([])}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            )}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredAndGroupedContacts.map((contact) => (
+                <ContactCard
+                  key={contact.id}
+                  contact={contact}
+                  onClick={() => handleViewContact(contact)}
+                />
+              ))}
+            </div>
+            {filteredAndGroupedContacts.length === 0 && (
+              <p className="text-center text-muted-foreground mt-8">
+                No contacts found {selectedTags.length > 0 && "with selected tags"}
+              </p>
+            )}
+          </>
         )}
 
         <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
