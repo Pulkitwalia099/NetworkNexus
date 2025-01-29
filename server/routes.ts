@@ -285,6 +285,27 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/contacts/groups/create", async (req, res) => {
+    try {
+      const { group } = req.body;
+
+      // Create a placeholder contact with the new group to establish it
+      const contact = await db.insert(contacts)
+        .values({
+          name: `${group} (Group)`,
+          group: group,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      res.json({ success: true, group });
+    } catch (error) {
+      console.error("Error creating group:", error);
+      res.status(500).json({ error: "Failed to create group" });
+    }
+  });
+
   // Add this new endpoint just before the existing contact connections endpoints
   app.get("/api/connections", async (_req, res) => {
     try {

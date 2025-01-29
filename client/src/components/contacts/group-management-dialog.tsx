@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, X } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 interface GroupManagementDialogProps {
   open: boolean;
@@ -24,6 +24,31 @@ export default function GroupManagementDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const createGroupMutation = useMutation({
+    mutationFn: async (group: string) => {
+      const response = await fetch(`/api/contacts/groups/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create group");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      toast({ title: "Group created successfully" });
+      setNewGroup("");
+    },
+    onError: () => {
+      toast({ 
+        title: "Failed to create group",
+        variant: "destructive"
+      });
+    }
+  });
+
   const updateContactGroupsMutation = useMutation({
     mutationFn: async ({ oldGroup, newGroup }: { oldGroup: string; newGroup: string }) => {
       const response = await fetch(`/api/contacts/groups/update`, {
@@ -42,7 +67,7 @@ export default function GroupManagementDialog({
 
   const handleAddGroup = async () => {
     if (!newGroup.trim()) return;
-    
+
     // Check if group already exists
     if (existingGroups.includes(newGroup)) {
       toast({ 
@@ -52,12 +77,12 @@ export default function GroupManagementDialog({
       return;
     }
 
-    setNewGroup("");
+    createGroupMutation.mutate(newGroup);
   };
 
   const handleUpdateGroup = async () => {
     if (!editingGroup || !editingGroup.current.trim()) return;
-    
+
     // Check if new name already exists
     if (existingGroups.includes(editingGroup.current) && 
         editingGroup.current !== editingGroup.original) {
