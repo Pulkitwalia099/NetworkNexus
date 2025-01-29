@@ -1,6 +1,13 @@
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Contact } from "@db/schema";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Contact, Interaction } from "@db/schema";
+import { MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import QuickInteractionForm from "./quick-interaction-form";
 
 interface ContactCardProps {
   contact: Contact;
@@ -8,14 +15,49 @@ interface ContactCardProps {
 }
 
 export default function ContactCard({ contact, onClick }: ContactCardProps) {
+  const [isQuickFormOpen, setIsQuickFormOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const createInteractionMutation = useMutation({
+    mutationFn: async (data: Partial<Interaction>) => {
+      const response = await fetch(`/api/contacts/${contact.id}/interactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/contacts/${contact.id}/interactions`] 
+      });
+      toast({ title: "Interaction added successfully" });
+      setIsQuickFormOpen(false);
+    },
+  });
+
+  const handleQuickInteraction = (data: Partial<Interaction>) => {
+    createInteractionMutation.mutate(data);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent card click when clicking the quick interaction button
+    if (e.target instanceof HTMLElement && 
+        (e.target.closest('button') || e.target.closest('[role="dialog"]'))) {
+      return;
+    }
+    onClick?.();
+  };
+
   return (
     <Card 
-      className="p-4 hover:bg-accent cursor-pointer"
-      onClick={onClick}
+      className="p-4 hover:bg-accent cursor-pointer relative group"
+      onClick={handleCardClick}
     >
       <div className="flex items-center space-x-4">
         <Avatar>
-          <AvatarImage src={contact.avatar} />
+          <AvatarImage src={contact.avatar || undefined} />
           <AvatarFallback>
             {contact.name.split(' ').map(n => n[0]).join('')}
           </AvatarFallback>
@@ -35,6 +77,32 @@ export default function ContactCard({ contact, onClick }: ContactCardProps) {
             </p>
           )}
         </div>
+        <Popover open={isQuickFormOpen} onOpenChange={setIsQuickFormOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" onClick={(e) => e.stopPropagation()}>
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <h4 className="font-medium leading-none">Quick Interaction</h4>
+                <p className="text-sm text-muted-foreground">
+                  Add a quick interaction with {contact.name}
+                </p>
+              </div>
+              <QuickInteractionForm
+                onSubmit={handleQuickInteraction}
+                onCancel={() => setIsQuickFormOpen(false)}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </Card>
   );
