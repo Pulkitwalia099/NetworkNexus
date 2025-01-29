@@ -20,7 +20,6 @@ const interactionSchema = z.object({
   taskDueDate: z.string().optional(),
   taskPriority: z.enum(['low', 'medium', 'high']).optional(),
 }).refine((data) => {
-  // If createTask is true, require task fields
   if (data.createTask) {
     return data.taskTitle && data.taskDueDate && data.taskPriority;
   }
@@ -35,7 +34,7 @@ type InteractionFormData = z.infer<typeof interactionSchema>;
 interface InteractionFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: InteractionFormData) => void;
+  onSubmit: (data: InteractionFormData & { task?: { title: string; dueDate: string; priority: string; tags: string[] } }) => void;
 }
 
 export default function InteractionForm({ open, onClose, onSubmit }: InteractionFormProps) {
@@ -56,7 +55,17 @@ export default function InteractionForm({ open, onClose, onSubmit }: Interaction
   });
 
   const handleSubmit = (data: InteractionFormData) => {
-    onSubmit(data);
+    const submissionData = {
+      ...data,
+      task: data.createTask ? {
+        title: data.taskTitle,
+        dueDate: data.taskDueDate,
+        priority: data.taskPriority,
+        tags: [],
+      } : undefined,
+    };
+
+    onSubmit(submissionData);
     form.reset();
     setShowTaskFields(false);
   };
