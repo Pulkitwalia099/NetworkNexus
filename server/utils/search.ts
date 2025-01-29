@@ -46,14 +46,17 @@ export function calculateFieldSimilarity(query: string, field: string | null): n
     return acc + (tokenMatch ? 1 : 0);
   }, 0) / queryTokens.length;
 
-  // Weighted average of different similarity measures
-  return (
+  // Return weighted average of different similarity measures
+  const similarityScore = (
     (stringSim * 0.3) +
     (levenSim * 0.3) +
     (soundexMatch * 0.2) +
     (metaphoneMatch * 0.1) +
     (tokenSim * 0.1)
   );
+
+  console.log(`Field similarity for "${field}": ${similarityScore}`);
+  return similarityScore;
 }
 
 export function fuzzySearchContacts(
@@ -62,6 +65,9 @@ export function fuzzySearchContacts(
   weights: SearchWeights = DEFAULT_WEIGHTS
 ): Contact[] {
   if (!query.trim()) return contacts;
+
+  console.log(`Fuzzy searching for: "${query}"`);
+  console.log(`Total contacts to search through: ${contacts.length}`);
 
   const scoredContacts = contacts.map(contact => {
     const scores = {
@@ -76,14 +82,19 @@ export function fuzzySearchContacts(
     const maxPossibleScore = Object.values(weights).reduce((a, b) => a + b, 0);
     const normalizedScore = totalScore / maxPossibleScore;
 
+    console.log(`Contact "${contact.name}" score: ${normalizedScore}`);
+
     return {
       contact,
       score: normalizedScore,
     };
   });
 
-  return scoredContacts
+  const filteredContacts = scoredContacts
     .filter(item => item.score > SIMILARITY_THRESHOLD)
     .sort((a, b) => b.score - a.score)
     .map(item => item.contact);
+
+  console.log(`Found ${filteredContacts.length} matching contacts`);
+  return filteredContacts;
 }

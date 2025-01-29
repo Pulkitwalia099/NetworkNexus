@@ -18,18 +18,19 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/contacts", async (req, res) => {
     try {
       const searchTerm = req.query.search as string;
-      console.log("Search term:", searchTerm); // Debug log
+      console.log("Received search term:", searchTerm);
 
       const results = await db.query.contacts.findMany({
         orderBy: desc(contacts.updatedAt),
       });
 
-      console.log("Total contacts before search:", results.length); // Debug log
+      console.log("Total contacts in database:", results.length);
 
       if (searchTerm) {
         // Apply fuzzy search if search term is provided
+        console.log("Applying fuzzy search for:", searchTerm);
         const fuzzyResults = fuzzySearchContacts(results, searchTerm);
-        console.log("Fuzzy search results:", fuzzyResults.length); // Debug log
+        console.log("Fuzzy search returned:", fuzzyResults.length, "results");
         return res.json(fuzzyResults);
       }
 
