@@ -138,13 +138,17 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/meetings", async (req, res) => {
     try {
+      const meetingData = {
+        ...req.body,
+        date: new Date(req.body.date), // Ensure date is converted to a Date object
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
       const meeting = await db.insert(meetings)
-        .values({
-          ...req.body,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
+        .values(meetingData)
         .returning();
+
       res.json(meeting[0]);
     } catch (error) {
       console.error("Error creating meeting:", error);
