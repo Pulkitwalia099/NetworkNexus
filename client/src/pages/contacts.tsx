@@ -97,31 +97,6 @@ export default function Contacts() {
     },
   });
 
-  const importMutation = useMutation({
-    mutationFn: async (data: { content: string, format: 'json' | 'csv' }) => {
-      const response = await fetch("/api/contacts/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to import contacts");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
-      toast({ title: "Contacts imported successfully" });
-      setIsImportOpen(false);
-    },
-    onError: () => {
-      toast({ 
-        title: "Failed to import contacts",
-        variant: "destructive"
-      });
-    }
-  });
-
   const handleSubmit = (data: Partial<Contact>) => {
     if (selectedContact) {
       updateMutation.mutate({ ...data, id: selectedContact.id });
@@ -138,6 +113,11 @@ export default function Contacts() {
   const handleAddNew = () => {
     setSelectedContact(undefined);
     setIsFormOpen(true);
+  };
+
+  const handleViewContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsDetailOpen(true);
   };
 
   const handleExport = async (format: 'json' | 'csv') => {
@@ -170,18 +150,26 @@ export default function Contacts() {
     reader.onload = async (e) => {
       const content = e.target?.result as string;
       try {
-        await importMutation.mutateAsync({ content, format });
+        const response = await fetch("/api/contacts/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content, format }),
+        });
+        if (!response.ok) {
+          throw new Error("Failed to import contacts");
+        }
+        await queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+        toast({ title: "Contacts imported successfully" });
+        setIsImportOpen(false);
       } catch (error) {
-        console.error('Import error:', error);
+        toast({ 
+          title: "Failed to import contacts",
+          variant: "destructive"
+        });
       }
     };
 
     reader.readAsText(file);
-  };
-
-  const handleViewContact = (contact: Contact) => {
-    setSelectedContact(contact);
-    setIsDetailOpen(true);
   };
 
   return (
@@ -316,6 +304,7 @@ export default function Contacts() {
                   key={contact.id}
                   contact={contact}
                   onClick={() => handleViewContact(contact)}
+                  onEdit={() => handleEdit(contact)}
                 />
               ))}
             </div>
