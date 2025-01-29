@@ -4,7 +4,7 @@ import { Contact, Interaction } from "@db/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Mail, Phone, Building2, Briefcase } from "lucide-react";
+import { MessageSquare, Mail, Phone, Building2, Briefcase, Users, Tag } from "lucide-react";
 import InteractionList from "./interaction-list";
 import InteractionForm from "./interaction-form";
 
@@ -76,6 +76,27 @@ export default function ContactDetail({ contact, open, onClose }: ContactDetailP
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Briefcase className="mr-2 h-4 w-4" />
                     {contact.title}
+                  </div>
+                )}
+                {contact.group && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Users className="mr-2 h-4 w-4" />
+                    {contact.group}
+                  </div>
+                )}
+                {contact.tags && contact.tags.length > 0 && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Tag className="mr-2 h-4 w-4" />
+                    <div className="flex flex-wrap gap-1">
+                      {(contact.tags as string[]).map((tag) => (
+                        <span
+                          key={tag}
+                          className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

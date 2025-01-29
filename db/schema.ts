@@ -1,6 +1,7 @@
 import { pgTable, text, serial, timestamp, integer, boolean, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod";
 
 export const contacts = pgTable("contacts", {
   id: serial("id").primaryKey(),
@@ -12,6 +13,7 @@ export const contacts = pgTable("contacts", {
   avatar: text("avatar"),
   notes: text("notes"),
   group: text("group"),
+  tags: jsonb("tags").default([]).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
