@@ -33,14 +33,30 @@ app.use(requestLogger);
   }
 
   // Start server
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => {
-    logger.info(`Server started`, {
-      port: PORT,
-      env: app.get("env"),
-      nodeVersion: process.version,
+  const PORT = process.env.PORT || 5000; // Using port 5000 as required
+  try {
+    server.listen(PORT, '0.0.0.0', async () => {
+      logger.info(`Server started`, {
+        port: PORT,
+        env: app.get("env"),
+        nodeVersion: process.version,
+      });
     });
-  });
+
+    // Handle server errors
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Please ensure no other instance is running.`);
+        process.exit(1);
+      } else {
+        logger.error('Server error occurred:', { error });
+        process.exit(1);
+      }
+    });
+  } catch (err) {
+    logger.error("Failed to start server", { error: err });
+    process.exit(1);
+  }
 })().catch((err) => {
   logger.error("Failed to start server", { error: err });
   process.exit(1);
