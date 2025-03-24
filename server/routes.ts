@@ -169,6 +169,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // commented here
+
   app.put("/api/meetings/:id", async (req, res) => {
     try {
       const meetingData = {
