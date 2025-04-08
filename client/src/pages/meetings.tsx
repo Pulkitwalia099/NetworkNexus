@@ -58,15 +58,33 @@ export default function Meetings() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/meetings/${id}`, {
-        method: "DELETE",
-      });
-      return response.json();
+      console.log("Delete mutation executing for meeting ID:", id);
+      try {
+        const response = await fetch(`/api/meetings/${id}`, {
+          method: "DELETE",
+        });
+        console.log("Delete response status:", response.status);
+        const data = await response.json();
+        console.log("Delete response data:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in delete mutation:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Delete mutation successful, data:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/meetings"] });
       toast({ title: "Meeting deleted successfully" });
       setSelectedMeeting(null);
+    },
+    onError: (error) => {
+      console.error("Delete mutation error:", error);
+      toast({ 
+        title: "Error deleting meeting", 
+        description: "Please try again", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -84,8 +102,12 @@ export default function Meetings() {
   };
 
   const handleDelete = (meeting: Meeting) => {
+    console.log("handleDelete called for meeting:", meeting.id);
     if (window.confirm("Are you sure you want to delete this meeting?")) {
+      console.log("Confirmed deletion. Calling deleteMutation for meeting:", meeting.id);
       deleteMutation.mutate(meeting.id);
+    } else {
+      console.log("Deletion canceled by user for meeting:", meeting.id);
     }
   };
 

@@ -69,6 +69,7 @@ export default function MeetingCard({ meeting, contact, onEdit, onDelete, onClic
             size="icon"
             onClick={(e) => {
               e.stopPropagation();
+              console.log("Delete button clicked for meeting:", meeting.id);
               onDelete?.();
             }}
             className="hover:bg-background text-destructive hover:text-destructive"

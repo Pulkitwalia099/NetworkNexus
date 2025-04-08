@@ -194,18 +194,39 @@ export function registerRoutes(app: Express): Server {
   // Add DELETE endpoint for meetings
   app.delete("/api/meetings/:id", async (req, res) => {
     try {
-      const meeting = await db.delete(meetings)
-        .where(eq(meetings.id, parseInt(req.params.id)))
-        .returning();
-
-      if (!meeting.length) {
+      const meetingId = parseInt(req.params.id);
+      console.log(`API: Attempting to delete meeting with ID: ${meetingId}`);
+      
+      if (isNaN(meetingId)) {
+        console.error(`API: Invalid meeting ID: ${req.params.id}`);
+        return res.status(400).json({ error: "Invalid meeting ID" });
+      }
+      
+      // First check if the meeting exists
+      const existingMeeting = await db.query.meetings.findFirst({
+        where: eq(meetings.id, meetingId)
+      });
+      
+      if (!existingMeeting) {
+        console.error(`API: Meeting with ID ${meetingId} not found`);
         return res.status(404).json({ error: "Meeting not found" });
       }
+      
+      console.log(`API: Found meeting to delete:`, existingMeeting);
+      
+      // Proceed with deletion
+      const meeting = await db.delete(meetings)
+        .where(eq(meetings.id, meetingId))
+        .returning();
 
+      console.log(`API: Successfully deleted meeting, returning:`, meeting[0]);
       res.json(meeting[0]);
     } catch (error) {
-      console.error("Error deleting meeting:", error);
-      res.status(500).json({ error: "Failed to delete meeting" });
+      console.error("API: Error deleting meeting:", error);
+      res.status(500).json({ 
+        error: "Failed to delete meeting", 
+        message: error instanceof Error ? error.message : "Unknown error" 
+      });
     }
   });
 
