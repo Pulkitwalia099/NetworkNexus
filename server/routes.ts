@@ -1,11 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { db } from "@db";
+import { db, useMockData } from "@db";
 import { contacts, meetings, tasks, interactions, contactConnections } from "@db/schema";
 import { eq, like, desc, and, or } from "drizzle-orm";
 import { createObjectCsvStringifier } from "csv-writer";
 import { parse } from "csv-parse/sync";
 import { sql } from 'drizzle-orm/sql';
+import { mockDataService } from "./utils/mock-data";
 
 export function registerRoutes(app: Express): Server {
   // Check server health

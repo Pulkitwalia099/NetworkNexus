@@ -1,8 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes-with-mock"; // Using the version that supports mock data
 import { setupVite, serveStatic } from "./vite";
 import logger, { requestLogger, errorHandler } from "./utils/logger";
 import { randomUUID } from "crypto";
+import { useMockData } from "@db";
 
 const app = express();
 
@@ -36,10 +37,13 @@ app.use(requestLogger);
   const PORT = process.env.PORT || 5000; // Using port 5000 as required
   try {
     server.listen(PORT, '0.0.0.0', async () => {
+      const dataMode = useMockData ? "Mock Data" : "PostgreSQL Database";
+      console.log(`Server started on port ${PORT} using ${dataMode}`);
       logger.info(`Server started`, {
         port: PORT,
         env: app.get("env"),
         nodeVersion: process.version,
+        dataMode
       });
     });
 
